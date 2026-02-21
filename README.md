@@ -1,4 +1,3 @@
-```markdown
 <div align="center">
 
 # ⚡ J.I.N.X. ⚡
@@ -50,7 +49,7 @@ with a cyberpunk aesthetic and a sarcastic personality.
 > *"JINX was born from a dead ThinkPad T61. A laptop from 2007 that 
 > couldn't even turn on anymore. Its metal chassis became JINX's body. 
 > Its screws hold JINX together. A spare phone that couldn't make calls 
-> became JINX's eyes, ears, and voice. Total hardware cost: ₹4,000. 
+> became JINX's eyes, ears, and voice. Total hardware cost: ₹6,000. 
 > This project proves that AI isn't about expensive hardware — it's 
 > about intelligence."*
 
@@ -954,7 +953,7 @@ This project is licensed under the MIT License — see the [LICENSE](LICENSE) fi
 
 <div align="center">
 
-**Built with ♥, sarcasm, and ₹3,750 worth of components.**
+**Built with ♥, sarcasm, and ₹5,750 worth of components.**
 
 **JINX doesn't just think. It judges.**
 
