@@ -1,0 +1,31 @@
+25. Lenovo ThinkPad T61 (non-functional — used for 
+    metal chassis parts, screws, hinges, fan, speaker, 
+    keyboard keys, RAM sticks, HDD platters, and 
+    body decoration)
+26. Xiaomi Redmi Note 12 (spare — used as primary 
+    camera, microphone, and speaker unit)
+27. Wi-Fi Router (used as private local network 
+    backbone for device communication)
+28. UP Government Tablet (used as real-time 
+    cyberpunk monitoring dashboard display)
+29. Bluetooth Microphone (used for voice command 
+    input and wake-word detection)
+30. Wired Microphone (used for environmental audio 
+    capture and sound classification)
+31. LED Strips (existing — used for room ambiance 
+    and additional visual feedback)
+32. USB Type-C Chargers with Adapters × 2-3 
+    (used for charging dock and device power)
+33. Personal Laptop (used as main server running 
+    ML models, Flask backend, MQTT broker, and 
+    Streamlit dashboard)
+34. Personal Smartphone (used for remote control 
+    and testing)
+35. Non-functional Oppo Phone (harvested for 
+    vibration motor, magnets, internal components)
+36. Non-functional Wired Earphones × 2 (harvested 
+    for copper wire, small speakers, magnets)
+37. Power Bank (user accessory — stored on robot 
+    for owner's phone charging)
+38. Micro SD Card (used with DFPlayer Mini for 
+    storing sound effects and alert tones)

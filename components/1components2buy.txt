@@ -1,0 +1,25 @@
+1.  All Metal Tank Chassis Kit (with DC geared motors, 
+    tank treads, sprockets, chassis plate, hardware)
+2.  ESP32-WROOM-32 DevKit V1 Development Board
+3.  2.4" TFT LCD Display Module (ILI9341, SPI)
+4.  SG90 Micro Servo Motor 9G × 2
+5.  L298N Dual H-Bridge DC Motor Driver Module
+6.  HC-SR04 Ultrasonic Distance Sensor × 2
+7.  IR Infrared Obstacle Avoidance Sensor Module × 2
+8.  Active Buzzer Module 5V
+9.  18650 Li-ion Rechargeable Battery Cell (2600mAh) × 4
+10. 2S 18650 BMS Battery Protection Board
+11. 18650 Battery Holder (4-slot, 2S2P)
+12. TP4056 Lithium Battery Charging Module × 2
+13. 10kΩ Resistor × 2
+14. Mini Rocker Switch (SPST ON/OFF)
+15. DFPlayer Mini MP3 Player Module
+16. Mini Speaker 3W 4Ω (40mm)
+17. WS2812B Addressable RGB LED Strip (30 LEDs, 5V)
+18. Jumper Wires Male-to-Male (40pc)
+19. Jumper Wires Male-to-Female (40pc)
+20. Solderless Breadboard 840 Tie Points
+21. Nylon Cable Zip Ties
+22. Hot Glue Gun with Glue Sticks
+23. Black Matte Spray Paint
+24. Black Foam Board 5mm × 2

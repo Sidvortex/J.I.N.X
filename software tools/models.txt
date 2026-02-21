@@ -1,0 +1,43 @@
+┌────┬──────────────────┬───────────────┬──────────────┬────────────┐
+│ #  │ MODEL            │ TASK          │ TRAINING     │ KEY METRIC │
+├────┼──────────────────┼───────────────┼──────────────┼────────────┤
+│ 1  │ YOLOv5-nano      │ Object        │ Pre-trained  │ mAP        │
+│    │                  │ Detection     │ (COCO)       │            │
+├────┼──────────────────┼───────────────┼──────────────┼────────────┤
+│ 2  │ MediaPipe Face   │ Face Landmark │ Pre-trained  │ Detection  │
+│    │ Mesh             │ (468 points)  │ (Google)     │ Accuracy   │
+├────┼──────────────────┼───────────────┼──────────────┼────────────┤
+│ 3  │ MediaPipe Pose   │ Body Pose     │ Pre-trained  │ Keypoint   │
+│    │                  │ (33 points)   │ (Google)     │ Confidence │
+├────┼──────────────────┼───────────────┼──────────────┼────────────┤
+│ 4  │ MediaPipe Hands  │ Gesture       │ Pre-trained  │ Gesture    │
+│    │ + Custom         │ Recognition   │ + Custom     │ Accuracy   │
+│    │ Classifier       │               │ classifier   │            │
+├────┼──────────────────┼───────────────┼──────────────┼────────────┤
+│ 5  │ dlib ResNet /    │ Face          │ Pre-trained  │ FAR / FRR  │
+│    │ FaceNet          │ Recognition   │ + Custom DB  │ Accuracy   │
+├────┼──────────────────┼───────────────┼──────────────┼────────────┤
+│ 6  │ Custom CNN       │ Audio Event   │ Trained      │ F1-Score   │
+│    │ (2D Conv)        │ Classification│ (UrbanSound) │ Accuracy   │
+├────┼──────────────────┼───────────────┼──────────────┼────────────┤
+│ 7  │ Vosk / Google    │ Speech-to-    │ Pre-trained  │ WER        │
+│    │ Speech API       │ Text (STT)    │              │            │
+├────┼──────────────────┼───────────────┼──────────────┼────────────┤
+│ 8  │ Gemini Pro       │ NLU +         │ Pre-trained  │ Response   │
+│    │ (LLM)            │ Conversation  │ (Google)     │ Relevance  │
+├────┼──────────────────┼───────────────┼──────────────┼────────────┤
+│ 9  │ Random Forest /  │ Network       │ Trained      │ ROC-AUC    │
+│    │ XGBoost /        │ Anomaly       │ (NSL-KDD /   │ Precision  │
+│    │ Autoencoder      │ Detection     │  CICIDS)     │ Recall     │
+├────┼──────────────────┼───────────────┼──────────────┼────────────┤
+│ 10 │ Weighted         │ Multi-modal   │ Custom       │ Detection  │
+│    │ Ensemble         │ Sensor Fusion │ Designed     │ Accuracy   │
+│    │                  │ Threat Score  │              │ FAR        │
+└────┴──────────────────┴───────────────┴──────────────┴────────────┘
+
+BREAKDOWN:
+├── Pre-trained models:     6 (YOLO, MediaPipe ×3, dlib, Vosk)
+├── Custom trained models:  2 (Audio CNN, Network Anomaly)
+├── API-based models:       1 (Gemini LLM)
+├── Custom designed:        1 (Sensor Fusion Ensemble)
+└── TOTAL:                 10 models
