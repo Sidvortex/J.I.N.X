@@ -1,9 +1,9 @@
-# config.py - jinx configuration
+# dna.py - jinx configuration
 # dont touch this unless you know what ur doing lol
 
 # -- network stuff --
-LAPTOP_IP = "192.168.1.10"
-PHONE_IP = "192.168.1.11"  
+LAPTOP_IP = "127.0.0.1"  # localhost for testing, change to 192.168.1.10 when router is set up
+PHONE_IP = "192.168.1.11"
 TABLET_IP = "192.168.1.12"
 ESP32_IP = "192.168.1.20"
 MQTT_PORT = 1883
