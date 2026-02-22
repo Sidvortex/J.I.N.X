@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>DESKBOT · NEXUS CONTROL</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
+
+  :root {
+    --cyan:    #00f5ff;
+    --green:   #00ff88;
+    --red:     #ff0055;
+    --purple:  #8b00ff;
+    --yellow:  #ffcc00;
+    --bg:      #050a0f;
+    --bg2:     #0a1520;
+    --bg3:     #0f2030;
+    --border:  #1a3a5a;
+    --text:    #a0c8e8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scanlines effect */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(0,0,0,0.05) 2px, rgba(0,0,0,0.05) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 1.4rem;
+    letter-spacing: 4px;
+    color: var(--cyan);
+    text-shadow: 0 0 20px var(--cyan);
+  }
+
+  .status-bar {
+    display: flex; gap: 16px; align-items: center;
+    font-size: 0.7rem;
+  }
+
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  @media (max-width: 600px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  }
+
+  .card-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 0.75rem;
+    letter-spacing: 3px;
+    color: var(--cyan);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+  }
+
+  /* Camera Feed */
+  #camera-feed {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    background: #000;
+    min-height: 180px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; color: #444;
+  }
+
+  #camera-feed img { width: 100%; display: block; }
+
+  /* Mode buttons */
+  .mode-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    padding: 10px 12px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+    text-align: left;
+    text-transform: uppercase;
+  }
+
+  .btn:hover { border-color: var(--cyan); color: var(--cyan); background: rgba(0,245,255,0.05); }
+  .btn.active { border-color: var(--cyan); color: var(--cyan); background: rgba(0,245,255,0.1); }
+  .btn.red:hover { border-color: var(--red); color: var(--red); background: rgba(255,0,85,0.05); }
+  .btn.green:hover { border-color: var(--green); color: var(--green); background: rgba(0,255,136,0.05); }
+  .btn.yellow:hover { border-color: var(--yellow); color: var(--yellow); }
+  .btn.danger { border-color: #333; color: var(--red); }
+  .btn.danger:hover { background: rgba(255,0,85,0.1); border-color: var(--red); }
+
+  .btn-full { width: 100%; margin-top: 6px; }
+
+  /* Stats */
+  .stat-row {
+    display: flex; justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--bg3);
+    font-size: 0.72rem;
+  }
+
+  .stat-val { color: var(--cyan); }
+  .stat-val.warn { color: var(--yellow); }
+  .stat-val.danger { color: var(--red); }
+
+  /* Battery bar */
+  .battery-bar {
+    height: 6px;
+    background: var(--bg3);
+    border-radius: 3px;
+    margin: 8px 0;
+    overflow: hidden;
+  }
+
+  .battery-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--green);
+    transition: width 1s ease;
+  }
+
+  /* Doom meter */
+  .doom-bar {
+    height: 8px;
+    background: var(--bg3);
+    border-radius: 4px;
+    margin: 8px 0;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .doom-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--green), var(--yellow), var(--red));
+    transition: width 0.5s ease;
+  }
+
+  /* Input fields */
+  .input-row { display: flex; gap: 6px; margin-top: 8px; }
+
+  input[type="text"], textarea, select {
+    flex: 1;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    padding: 8px 10px;
+    outline: none;
+    border-radius: 2px;
+  }
+
+  input[type="text"]:focus, textarea:focus {
+    border-color: var(--cyan);
+    box-shadow: 0 0 8px rgba(0,245,255,0.15);
+  }
+
+  textarea { width: 100%; min-height: 80px; resize: vertical; margin-top: 6px; }
+
+  /* Alerts */
+  .alert-list { max-height: 160px; overflow-y: auto; }
+  .alert-item {
+    padding: 5px 0;
+    border-bottom: 1px solid var(--bg3);
+    font-size: 0.68rem;
+    color: var(--yellow);
+  }
+  .alert-item .alert-time { color: #556; margin-right: 8px; }
+
+  /* LED color picker */
+  .color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }
+  .color-btn {
+    height: 32px; border: 1px solid #333; border-radius: 2px;
+    cursor: pointer; transition: transform 0.1s;
+  }
+  .color-btn:hover { transform: scale(1.1); border-color: #fff; }
+
+  /* Network devices */
+  .device-list { font-size: 0.68rem; max-height: 130px; overflow-y: auto; }
+  .device-item {
+    display: flex; justify-content: space-between;
+    padding: 4px 0; border-bottom: 1px solid var(--bg3);
+  }
+  .device-trusted { color: var(--green); }
+  .device-unknown { color: var(--yellow); }
+
+  /* Agent response */
+  .response-box {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 10px;
+    font-size: 0.7rem;
+    min-height: 60px;
+    max-height: 150px;
+    overflow-y: auto;
+    margin-top: 8px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+  }
+
+  /* Movement pad */
+  .move-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+
+  .move-btn {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.1rem;
+    padding: 16px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+    border-radius: 2px;
+  }
+  .move-btn:hover { background: var(--bg2); border-color: var(--cyan); color: var(--cyan); }
+  .move-btn:active { background: rgba(0,245,255,0.15); }
+
+  /* Full-width card */
+  .card.full { grid-column: 1 / -1; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 0; margin-bottom: 12px; }
+  .tab {
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    cursor: pointer;
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+    color: #556;
+    background: var(--bg);
+  }
+  .tab.active { color: var(--cyan); background: var(--bg2); border-color: var(--cyan); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .badge {
+    display: inline-block; padding: 2px 6px;
+    font-size: 0.6rem; border-radius: 2px;
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .badge-cyan { background: rgba(0,245,255,0.15); color: var(--cyan); }
+  .badge-red  { background: rgba(255,0,85,0.15); color: var(--red); }
+  .badge-green { background: rgba(0,255,136,0.15); color: var(--green); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">⚡ DESKBOT · NEXUS</div>
+  <div class="status-bar">
+    <div class="status-dot"></div>
+    <span id="current-mode" style="color:var(--cyan)">BUDDY</span>
+    <span id="battery-display">100%</span>
+    <span id="clock"></span>
+  </div>
+</header>
+
+<div class="grid">
+
+  <!-- Camera Feed -->
+  <div class="card full">
+    <div class="card-title">▣ VISUAL FEED</div>
+    <div id="camera-feed">
+      <span>[ NO SIGNAL — START DROIDCAM ON PHONE ]</span>
+    </div>
+  </div>
+
+  <!-- Mode Control -->
+  <div class="card">
+    <div class="card-title">◈ MODE SELECT</div>
+    <div class="mode-grid">
+      <button class="btn active" onclick="setMode('buddy')">◉ BUDDY</button>
+      <button class="btn red" onclick="setMode('sentinel')">⚠ SENTINEL</button>
+      <button class="btn yellow" onclick="setMode('roast')">🔥 ROAST</button>
+      <button class="btn" onclick="setMode('agent')">🤖 AGENT</button>
+    </div>
+    <div class="move-grid" style="margin-top:10px">
+      <div></div>
+      <button class="move-btn" onclick="motor('forward')">↑</button>
+      <div></div>
+      <button class="move-btn" onclick="motor('left')">←</button>
+      <button class="move-btn" onclick="motor('stop')">■</button>
+      <button class="move-btn" onclick="motor('right')">→</button>
+      <div></div>
+      <button class="move-btn" onclick="motor('backward')">↓</button>
+      <div></div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="card">
+    <div class="card-title">◈ SYSTEM STATUS</div>
+    <div class="stat-row">
+      <span>BATTERY</span>
+      <span class="stat-val" id="stat-battery">100%</span>
+    </div>
+    <div class="battery-bar"><div class="battery-fill" id="battery-bar" style="width:100%"></div></div>
+    <div class="stat-row">
+      <span>DOOM LEVEL</span>
+      <span class="stat-val" id="stat-doom">0.000</span>
+    </div>
+    <div class="doom-bar"><div class="doom-fill" id="doom-bar" style="width:0%"></div></div>
+    <div class="stat-row">
+      <span>LAST AUDIO</span>
+      <span class="stat-val" id="stat-audio">—</span>
+    </div>
+    <div class="stat-row">
+      <span>NETWORK DEVICES</span>
+      <span class="stat-val" id="stat-devices">—</span>
+    </div>
+  </div>
+
+  <!-- Voice / Text Command -->
+  <div class="card">
+    <div class="card-title">◈ COMMAND INPUT</div>
+    <div class="input-row">
+      <input type="text" id="cmd-input" placeholder="Type a command..." />
+      <button class="btn" onclick="sendCommand()">SEND</button>
+    </div>
+    <button class="btn btn-full green" onclick="roastPrompt()">🔥 ROAST SOMEONE</button>
+    <button class="btn btn-full" onclick="registerFacePrompt()">👤 REGISTER FACE</button>
+    <button class="btn btn-full danger" onclick="clearAlerts()">✕ CLEAR ALERTS</button>
+  </div>
+
+  <!-- LED Control -->
+  <div class="card">
+    <div class="card-title">◈ LED CONTROL</div>
+    <div class="color-grid">
+      <div class="color-btn" style="background:#ff0055" onclick="setLED('red')" title="RED"></div>
+      <div class="color-btn" style="background:#00f5ff" onclick="setLED('cyan')" title="CYAN"></div>
+      <div class="color-btn" style="background:#00ff88" onclick="setLED('green')" title="GREEN"></div>
+      <div class="color-btn" style="background:#8b00ff" onclick="setLED('purple')" title="PURPLE"></div>
+      <div class="color-btn" style="background:#ffcc00" onclick="setLED('yellow')" title="YELLOW"></div>
+      <div class="color-btn" style="background:#ff6600" onclick="setLED('orange')" title="ORANGE"></div>
+      <div class="color-btn" style="background:#ffffff" onclick="setLED('white')" title="WHITE"></div>
+      <div class="color-btn" style="background:linear-gradient(45deg,#f00,#0f0,#00f)" onclick="setLED('rainbow')" title="RAINBOW"></div>
+    </div>
+    <button class="btn btn-full" style="margin-top:8px" onclick="setLED('off')">■ LIGHTS OFF</button>
+    <button class="btn btn-full" onclick="setLED('party')">✦ PARTY MODE</button>
+  </div>
+
+  <!-- Alerts -->
+  <div class="card">
+    <div class="card-title">◈ ALERT LOG</div>
+    <div class="alert-list" id="alert-list">
+      <div style="color:#333;font-size:0.7rem">[ NO ALERTS ]</div>
+    </div>
+  </div>
+
+  <!-- Network -->
+  <div class="card">
+    <div class="card-title">◈ NETWORK MAP</div>
+    <div class="device-list" id="device-list">
+      <div style="color:#333;font-size:0.7rem">[ SCANNING... ]</div>
+    </div>
+  </div>
+
+  <!-- AI Agent -->
+  <div class="card full">
+    <div class="card-title">◈ AI AGENT — DOCUMENT Q&A / CODE REVIEW</div>
+    <div class="tabs">
+      <div class="tab active" onclick="showTab('doc-tab', this)">DOCUMENTS</div>
+      <div class="tab" onclick="showTab('code-tab', this)">CODE REVIEW</div>
+      <div class="tab" onclick="showTab('upload-tab', this)">UPLOAD</div>
+    </div>
+
+    <div id="doc-tab" class="tab-content active">
+      <div class="input-row">
+        <input type="text" id="agent-q" placeholder="Ask a question about your documents..." />
+        <button class="btn" onclick="askAgent()">ASK</button>
+      </div>
+      <div class="response-box" id="agent-response">Ask me anything about your uploaded documents.</div>
+    </div>
+
+    <div id="code-tab" class="tab-content">
+      <div class="input-row">
+        <input type="text" id="code-filename" placeholder="filename.py" style="max-width:150px" />
+      </div>
+      <textarea id="code-input" placeholder="Paste your code here for review..."></textarea>
+      <button class="btn btn-full" onclick="reviewCode()">▷ REVIEW CODE</button>
+      <div class="response-box" id="code-review">Paste code and hit Review.</div>
+    </div>
+
+    <div id="upload-tab" class="tab-content">
+      <p style="font-size:0.72rem;margin-bottom:10px;color:#778">
+        Upload PDFs, text files, or code. JINX will read and answer questions about them.
+      </p>
+      <input type="file" id="doc-upload" accept=".pdf,.txt,.md,.py,.js,.docx"
+             style="font-size:0.7rem;color:var(--text);width:100%" />
+      <button class="btn btn-full" onclick="uploadDoc()" style="margin-top:8px">↑ UPLOAD TO JINX</button>
+      <div id="upload-status" style="font-size:0.7rem;margin-top:6px;color:var(--green)"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API = "";  // Same origin
+
+// ── State polling ──────────────────────────────────────────────────────────
+let prevState = {};
+
+async function pollState() {
+  try {
+    const r = await fetch(`${API}/api/state`);
+    const s = await r.json();
+
+    // Mode
+    document.getElementById("current-mode").textContent = s.mode.toUpperCase();
+    document.querySelectorAll(".mode-grid .btn").forEach(b => b.classList.remove("active"));
+
+    // Battery
+    const bpct = s.battery_pct;
+    document.getElementById("stat-battery").textContent = bpct + "%";
+    document.getElementById("battery-display").textContent = bpct + "%";
+    document.getElementById("battery-bar").style.width = bpct + "%";
+    const statBat = document.getElementById("stat-battery");
+    statBat.className = "stat-val" + (bpct < 15 ? " danger" : bpct < 30 ? " warn" : "");
+
+    // Doom
+    const doom = s.doom_level;
+    document.getElementById("stat-doom").textContent = doom.toFixed(3);
+    document.getElementById("doom-bar").style.width = (doom * 100) + "%";
+
+    // Audio
+    if (s.audio && s.audio.label) {
+      document.getElementById("stat-audio").textContent =
+        `${s.audio.label} (${(s.audio.confidence * 100).toFixed(0)}%)`;
+    }
+
+    // Network
+    if (s.network && s.network.count !== undefined) {
+      document.getElementById("stat-devices").textContent = s.network.count + " devices";
+      renderDevices(s.network.devices || []);
+    }
+
+    // Alerts
+    if (s.alerts && s.alerts.length) {
+      renderAlerts(s.alerts);
+    }
+
+    // Agent response
+    if (s.agent_response && s.agent_response !== prevState.agent_response) {
+      document.getElementById("agent-response").textContent = s.agent_response;
+    }
+
+    // Code review
+    if (s.code_review && s.code_review !== prevState.code_review) {
+      document.getElementById("code-review").textContent = s.code_review;
+    }
+
+    prevState = s;
+  } catch(e) { /* Server not ready */ }
+}
+
+// ── Camera feed ────────────────────────────────────────────────────────────
+async function pollFrame() {
+  try {
+    const r = await fetch(`${API}/api/frame`);
+    const d = await r.json();
+    if (d.frame) {
+      const feed = document.getElementById("camera-feed");
+      let img = feed.querySelector("img");
+      if (!img) {
+        feed.innerHTML = "";
+        img = document.createElement("img");
+        feed.appendChild(img);
+      }
+      img.src = "data:image/jpeg;base64," + d.frame;
+    }
+  } catch(e) {}
+}
+
+// ── Renders ────────────────────────────────────────────────────────────────
+function renderAlerts(alerts) {
+  const list = document.getElementById("alert-list");
+  list.innerHTML = alerts.map(a =>
+    `<div class="alert-item"><span class="alert-time">${a.time}</span>${a.msg}</div>`
+  ).join("");
+}
+
+function renderDevices(devices) {
+  const list = document.getElementById("device-list");
+  list.innerHTML = devices.map(d =>
+    `<div class="device-item">
+      <span class="${d.trusted ? 'device-trusted' : 'device-unknown'}">
+        ${d.trusted ? '✓' : '?'} ${d.hostname || d.ip}
+      </span>
+      <span style="color:#556">${d.ip}</span>
+    </div>`
+  ).join("") || '<div style="color:#333;font-size:0.7rem">[ NO DEVICES ]</div>';
+}
+
+// ── Actions ────────────────────────────────────────────────────────────────
+async function post(action, payload = {}) {
+  await fetch(`${API}/api/command`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({action, payload}),
+  });
+}
+
+function setMode(mode)   { post("set_mode", {mode}); }
+function motor(dir)      { post("motor", {direction: dir}); }
+function setLED(color)   { post("set_led", {color}); }
+function clearAlerts()   { fetch(`${API}/api/alerts/clear`, {method:"POST"}); document.getElementById("alert-list").innerHTML=""; }
+
+function sendCommand() {
+  const text = document.getElementById("cmd-input").value.trim();
+  if (!text) return;
+  post("voice_command", {text});
+  document.getElementById("cmd-input").value = "";
+}
+
+function roastPrompt() {
+  const name = prompt("Who to roast? (leave blank for whoever's in front)");
+  post("roast", {name: name || ""});
+}
+
+function registerFacePrompt() {
+  const name  = prompt("Enter name for this face:");
+  if (!name) return;
+  const label = confirm("Is this person safe? (OK=safe, Cancel=threat)") ? "safe" : "threat";
+  post("register_face", {name, label});
+}
+
+function askAgent() {
+  const question = document.getElementById("agent-q").value.trim();
+  if (!question) return;
+  document.getElementById("agent-response").textContent = "Thinking...";
+  post("ask_agent", {question});
+}
+
+function reviewCode() {
+  const code     = document.getElementById("code-input").value.trim();
+  const filename = document.getElementById("code-filename").value || "code.py";
+  if (!code) return;
+  document.getElementById("code-review").textContent = "Reviewing...";
+  post("review_code", {code, filename});
+}
+
+async function uploadDoc() {
+  const file = document.getElementById("doc-upload").files[0];
+  if (!file) { alert("Select a file first"); return; }
+  const fd = new FormData();
+  fd.append("file", file);
+  const r = await fetch(`${API}/api/upload_document`, {method: "POST", body: fd});
+  const d = await r.json();
+  document.getElementById("upload-status").textContent =
+    d.ok ? `✓ Uploaded: ${d.filename}` : "✗ Upload failed";
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────
+function showTab(id, el) {
+  document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  el.classList.add("active");
+}
+
+// ── Clock ──────────────────────────────────────────────────────────────────
+function updateClock() {
+  document.getElementById("clock").textContent =
+    new Date().toLocaleTimeString("en-IN", {hour12: false});
+}
+
+// ── Enter key on inputs ────────────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("cmd-input").addEventListener("keydown", e => {
+    if (e.key === "Enter") sendCommand();
+  });
+  document.getElementById("agent-q").addEventListener("keydown", e => {
+    if (e.key === "Enter") askAgent();
+  });
+
+  // Start polling
+  setInterval(pollState, 1500);
+  setInterval(pollFrame, 200);
+  setInterval(updateClock, 1000);
+  pollState();
+  updateClock();
+});
+</script>
+</body>
+</html>

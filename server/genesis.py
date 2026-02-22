@@ -1,240 +1,261 @@
-# genesis.py - JINX main startup
-# this is the file that starts everything
-# run this and jinx comes to life
-#
-# starts all modules in separate threads:
-# optic (vision), vocoder (voice), echo_hunter (audio),
-# ice_wall (network), hivemind (sensor fusion)
-#
-# also starts the dashboard server
-#
-# usage: python genesis.py
+#!/usr/bin/env python3
+"""
+GENESIS.PY — DESKBOT MAIN STARTUP
+Launches all modules, handles startup sequence and graceful shutdown.
 
-import threading
-import time
+Usage:
+    python server/genesis.py
+    python server/genesis.py --sentinel
+    python server/genesis.py --no-vision --no-audio
+    python server/genesis.py --agent-mode  (code review / doc Q&A focus)
+"""
+
 import sys
 import os
+import time
 import signal
+import argparse
+import threading
+import subprocess
+from datetime import datetime
 
+# Add server directory to path
 sys.path.insert(0, os.path.dirname(__file__))
 
-from dna import *
-from blackbox import JinxDB
-from psyche import say
+import dna
+from synapse    import Synapse
+from blackbox   import Blackbox
+from psyche     import Psyche
+from optic      import Optic
+from vocoder    import Vocoder
+from echo_hunter import EchoHunter
+from ice_wall   import IceWall
+from hivemind   import Hivemind
+from agent      import Agent
 
 
-def print_banner():
-    banner = """
-\033[36m
-     ██╗██╗███╗   ██╗██╗  ██╗
-     ██║██║████╗  ██║╚██╗██╔╝
-     ██║██║██╔██╗ ██║ ╚███╔╝ 
-██   ██║██║██║╚██╗██║ ██╔██╗ 
-╚█████╔╝██║██║ ╚████║██╔╝ ██╗
- ╚════╝ ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝
-\033[0m
-\033[35m  JUDGMENTAL INTELLIGENCE WITH
-  NEURAL EXECUTION  v2.0.77\033[0m
+BANNER = r"""
+     ██████╗ ███████╗███████╗██╗  ██╗██████╗  ██████╗ ████████╗
+     ██╔══██╗██╔════╝██╔════╝██║ ██╔╝██╔══██╗██╔═══██╗╚══██╔══╝
+     ██║  ██║█████╗  ███████╗█████╔╝ ██████╔╝██║   ██║   ██║   
+     ██║  ██║██╔══╝  ╚════██║██╔═██╗ ██╔══██╗██║   ██║   ██║   
+     ██████╔╝███████╗███████║██║  ██╗██████╔╝╚██████╔╝   ██║   
+     ╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝╚═════╝  ╚═════╝    ╚═╝   
+
+           JUDGMENTAL AI DESK COMPANION  v2.1.0
+           Built from a dead ThinkPad and a dream.
 """
-    print(banner)
 
 
-def loading_sequence():
-    """fancy boot sequence for terminal"""
-    modules = [
-        ("SYNAPSE", "MQTT Broker"),
-        ("BLACKBOX", "Database"),
-        ("PSYCHE", "Personality Matrix"),
-        ("OPTIC", "Visual Cortex"),
-        ("VOCODER", "Voice System"),
-        ("ECHO", "Sound Detection"),
-        ("ICE", "Network Defense"),
-        ("HIVEMIND", "Sensor Fusion"),
-    ]
-
-    for code, name in modules:
-        print(f"\033[32m[INIT]\033[0m Loading {code} ({name})...", end="", flush=True)
-        time.sleep(0.3)
-        print(f" \033[32m✓\033[0m")
-
-    print(f"\n\033[35m⚡ JINX NEURAL CORE ONLINE ⚡\033[0m\n")
+def parse_args():
+    parser = argparse.ArgumentParser(description="DESKBOT — Judgmental AI Companion")
+    parser.add_argument("--sentinel",    action="store_true", help="Start in sentinel mode")
+    parser.add_argument("--agent-mode",  action="store_true", help="Start in agent mode (code/doc focus)")
+    parser.add_argument("--no-vision",   action="store_true", help="Skip camera/vision module")
+    parser.add_argument("--no-voice",    action="store_true", help="Skip voice module")
+    parser.add_argument("--no-audio",    action="store_true", help="Skip audio classification")
+    parser.add_argument("--no-network",  action="store_true", help="Skip network monitoring")
+    parser.add_argument("--no-dashboard",action="store_true", help="Skip Streamlit dashboard")
+    parser.add_argument("--no-web",      action="store_true", help="Skip web control server")
+    return parser.parse_args()
 
 
-def start_optic(mode):
-    """start vision system in a thread"""
-    try:
-        from optic import OpticNerve
-        eye = OpticNerve()
-        eye.run(mode)
-    except Exception as e:
-        print(f"\033[31m[ERROR] optic crashed: {e}\033[0m")
+class Deskbot:
+    def __init__(self, args):
+        self.args     = args
+        self.modules  = {}
+        self.running  = False
+        self.start_time = datetime.now()
 
-
-def start_vocoder():
-    """start voice system in a thread"""
-    try:
-        from vocoder import Vocoder
-        voice = Vocoder()
-        voice.eavesdrop()
-    except Exception as e:
-        print(f"\033[31m[ERROR] vocoder crashed: {e}\033[0m")
-
-
-def start_echo_hunter():
-    """start audio classification in a thread"""
-    try:
-        from echo_hunter import EchoHunter
-        echo = EchoHunter()
-        if echo.model is not None:
-            echo.patrol()
+        # Determine startup mode
+        if args.sentinel:
+            self.mode = dna.Mode.SENTINEL
+        elif args.agent_mode:
+            self.mode = dna.Mode.AGENT
         else:
-            print("[ECHO] no model loaded, skipping audio patrol")
-            print("[ECHO] train with: python echo_hunter.py --train")
-    except Exception as e:
-        print(f"\033[31m[ERROR] echo_hunter crashed: {e}\033[0m")
+            self.mode = dna.DEFAULT_MODE
 
+    def _init_print(self, label: str, status: str = "✓"):
+        icons = {"✓": "\033[92m✓\033[0m", "✗": "\033[91m✗\033[0m", "~": "\033[93m~\033[0m"}
+        icon = icons.get(status, status)
+        print(f"  [INIT] Loading {label:<35} {icon}")
+        time.sleep(0.1)
 
-def start_ice_wall():
-    """start network monitoring in a thread"""
-    try:
-        from ice_wall import IceWall
-        ice = IceWall()
-        ice.patrol()
-    except Exception as e:
-        print(f"\033[31m[ERROR] ice_wall crashed: {e}\033[0m")
+    def startup(self):
+        print(BANNER)
+        print(f"  Starting in \033[96m{self.mode.upper()}\033[0m mode")
+        print(f"  {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print()
 
+        try:
+            # 1. SYNAPSE — MQTT must come first (everything uses it)
+            synapse = Synapse()
+            synapse.connect()
+            self.modules["synapse"] = synapse
+            self._init_print("SYNAPSE (MQTT Bridge)")
 
-def start_hivemind():
-    """start sensor fusion in a thread"""
-    try:
-        from hivemind import HiveMind
-        hive = HiveMind()
-        hive.patrol()
-    except Exception as e:
-        print(f"\033[31m[ERROR] hivemind crashed: {e}\033[0m")
+            # 2. BLACKBOX — Logging
+            blackbox = Blackbox()
+            self.modules["blackbox"] = blackbox
+            self._init_print("BLACKBOX (Database)")
 
+            # 3. PSYCHE — Personality
+            psyche = Psyche()
+            self.modules["psyche"] = psyche
+            self._init_print("PSYCHE (Personality Matrix)")
 
-def start_dashboard():
-    """start streamlit dashboard"""
-    try:
-        import subprocess
-        dashboard_path = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)),
-            "dashboard", "nexus.py"
-        )
-        if os.path.exists(dashboard_path):
-            subprocess.Popen([
-                "streamlit", "run", dashboard_path,
-                "--server.port", str(DASHBOARD_PORT),
-                "--server.headless", "true"
-            ])
-            print(f"[NEXUS] dashboard at http://localhost:{DASHBOARD_PORT}")
-        else:
-            print("[NEXUS] dashboard not found, skipping")
-    except Exception as e:
-        print(f"[NEXUS] dashboard failed: {e}")
+            # 4. OPTIC — Vision
+            if not self.args.no_vision:
+                optic = Optic(synapse, blackbox)
+                self.modules["optic"] = optic
+                self._init_print("OPTIC (Visual Cortex)")
+            else:
+                self._init_print("OPTIC (Visual Cortex) — SKIPPED", "~")
+
+            # 5. VOCODER — Voice
+            if not self.args.no_voice:
+                vocoder = Vocoder(synapse, blackbox, psyche, self.modules.get("optic"))
+                self.modules["vocoder"] = vocoder
+                self._init_print("VOCODER (Voice System)")
+            else:
+                self._init_print("VOCODER (Voice System) — SKIPPED", "~")
+
+            # 6. ECHO HUNTER — Audio Classification
+            if not self.args.no_audio:
+                echo = EchoHunter(synapse, blackbox)
+                self.modules["echo"] = echo
+                self._init_print("ECHO HUNTER (Sound Detection)")
+            else:
+                self._init_print("ECHO HUNTER (Sound Detection) — SKIPPED", "~")
+
+            # 7. ICE WALL — Network
+            if not self.args.no_network:
+                ice = IceWall(synapse, blackbox)
+                self.modules["ice"] = ice
+                self._init_print("ICE WALL (Network Defense)")
+            else:
+                self._init_print("ICE WALL (Network Defense) — SKIPPED", "~")
+
+            # 8. HIVEMIND — Sensor Fusion
+            hivemind = Hivemind(synapse, blackbox)
+            self.modules["hivemind"] = hivemind
+            self._init_print("HIVEMIND (Sensor Fusion)")
+
+            # 9. AGENT — AI Agent (code review, doc Q&A)
+            agent = Agent(synapse, blackbox, psyche)
+            self.modules["agent"] = agent
+            self._init_print("AGENT (AI Code/Doc Agent)")
+
+        except Exception as e:
+            print(f"\n  \033[91m[FATAL] Module init failed: {e}\033[0m")
+            self.shutdown()
+            sys.exit(1)
+
+        print()
+        print("  \033[96m⚡ DESKBOT NEURAL CORE ONLINE ⚡\033[0m")
+        print()
+
+        # Launch dashboard in background
+        if not self.args.no_dashboard:
+            self._launch_dashboard()
+
+        # Launch web control server
+        if not self.args.no_web:
+            self._launch_web_control()
+
+        return True
+
+    def _launch_dashboard(self):
+        def _run():
+            dash_path = os.path.join(os.path.dirname(__file__), '..', 'dashboard', 'nexus.py')
+            subprocess.Popen(
+                [sys.executable, "-m", "streamlit", "run", dash_path,
+                 "--server.port", str(dna.DASHBOARD_PORT),
+                 "--server.headless", "true"],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            )
+        threading.Thread(target=_run, daemon=True).start()
+        print(f"  [WEB] Dashboard: http://{dna.LAPTOP_IP}:{dna.DASHBOARD_PORT}")
+
+    def _launch_web_control(self):
+        def _run():
+            web_path = os.path.join(os.path.dirname(__file__), '..', 'web_control', 'app.py')
+            subprocess.Popen(
+                [sys.executable, web_path],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            )
+        threading.Thread(target=_run, daemon=True).start()
+        print(f"  [WEB] Control Panel: http://{dna.LAPTOP_IP}:{dna.WEB_PORT}")
+
+    def run(self):
+        self.running = True
+        threads = []
+
+        # Start each module in its own thread
+        module_runners = {
+            "optic":    lambda: self.modules["optic"].run(),
+            "vocoder":  lambda: self.modules["vocoder"].run(),
+            "echo":     lambda: self.modules["echo"].run(),
+            "ice":      lambda: self.modules["ice"].run(),
+            "hivemind": lambda: self.modules["hivemind"].run(),
+            "agent":    lambda: self.modules["agent"].run(),
+        }
+
+        for name, runner in module_runners.items():
+            if name in self.modules:
+                t = threading.Thread(target=runner, name=name, daemon=True)
+                t.start()
+                threads.append(t)
+
+        # Set initial mode
+        synapse = self.modules["synapse"]
+        synapse.publish(dna.TOPIC["mode"], self.mode)
+        synapse.publish(dna.TOPIC["eyes"], "boot")
+        synapse.publish(dna.TOPIC["led"], "boot")
+
+        # Announce startup
+        vocoder = self.modules.get("vocoder")
+        if vocoder:
+            time.sleep(2)  # Let boot animation play
+            vocoder.speak(f"Systems online. I am {dna.BOT_NAME}. Try not to bore me.")
+
+        print("\n  Press Ctrl+C to shutdown\n")
+
+        # Keep main thread alive
+        try:
+            while self.running:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            pass
+        finally:
+            self.shutdown()
+
+    def shutdown(self):
+        print("\n  [SHUTDOWN] Initiating graceful shutdown...")
+        self.running = False
+
+        vocoder = self.modules.get("vocoder")
+        if vocoder:
+            vocoder.speak("Going offline. Try not to miss me.")
+            time.sleep(2)
+
+        synapse = self.modules.get("synapse")
+        if synapse:
+            synapse.publish(dna.TOPIC["eyes"], "sleep")
+            synapse.publish(dna.TOPIC["led"], "off")
+            synapse.disconnect()
+
+        print("  [SHUTDOWN] Complete. Goodbye.")
 
 
 def main():
-    print_banner()
-    loading_sequence()
+    args   = parse_args()
+    bot    = Deskbot(args)
+    signal.signal(signal.SIGTERM, lambda s, f: bot.shutdown())
 
-    db = JinxDB(DB_PATH)
-    db.add_syslog("GENESIS", "JINX is waking up")
-
-    mode = "buddy"  # default mode
-    if "--sentinel" in sys.argv:
-        mode = "sentinel"
-        print("[GENESIS] starting in SENTINEL mode")
-
-    # figure out which modules to start
-    skip_vision = "--no-vision" in sys.argv
-    skip_voice = "--no-voice" in sys.argv
-    skip_audio = "--no-audio" in sys.argv
-    skip_network = "--no-network" in sys.argv
-    skip_dashboard = "--no-dashboard" in sys.argv
-
-    threads = []
-
-    # start modules as daemon threads
-    # daemon = they die when main thread dies
-
-    if not skip_vision:
-        t = threading.Thread(target=start_optic, args=(mode,), daemon=True, name="optic")
-        threads.append(t)
-        print("[GENESIS] optic queued")
-
-    if not skip_voice:
-        t = threading.Thread(target=start_vocoder, daemon=True, name="vocoder")
-        threads.append(t)
-        print("[GENESIS] vocoder queued")
-
-    if not skip_audio:
-        t = threading.Thread(target=start_echo_hunter, daemon=True, name="echo")
-        threads.append(t)
-        print("[GENESIS] echo_hunter queued")
-
-    if not skip_network:
-        t = threading.Thread(target=start_ice_wall, daemon=True, name="ice")
-        threads.append(t)
-        print("[GENESIS] ice_wall queued")
-
-    # always start hivemind (sensor fusion)
-    t = threading.Thread(target=start_hivemind, daemon=True, name="hivemind")
-    threads.append(t)
-
-    # start dashboard
-    if not skip_dashboard:
-        start_dashboard()
-
-    # launch all threads
-    print(f"\n[GENESIS] starting {len(threads)} modules...")
-    for t in threads:
-        t.start()
-        time.sleep(0.5)  # small delay between starts
-
-    print(f"\n[GENESIS] ⚡ ALL SYSTEMS GO ⚡")
-    print(f"[GENESIS] mode: {mode}")
-    print(f"[GENESIS] modules: {len(threads)} active")
-    print(f"[GENESIS] press Ctrl+C to shutdown\n")
-
-    db.add_syslog("GENESIS", f"all modules started in {mode} mode")
-
-    # keep main thread alive
-    try:
-        while True:
-            # periodic health check
-            alive_count = sum(1 for t in threads if t.is_alive())
-            if alive_count < len(threads):
-                dead = [t.name for t in threads if not t.is_alive()]
-                print(f"\033[33m[GENESIS] warning: {dead} modules died\033[0m")
-
-            time.sleep(5)
-
-    except KeyboardInterrupt:
-        print("\n\n[GENESIS] shutting down JINX...")
-        print("[GENESIS] goodnight 💤")
-        db.add_syslog("GENESIS", "JINX shutting down")
-        db.close()
-        sys.exit(0)
+    if bot.startup():
+        bot.run()
 
 
 if __name__ == "__main__":
-    # usage:
-    # python genesis.py                    → normal startup
-    # python genesis.py --sentinel         → start in sentinel mode
-    # python genesis.py --no-vision        → skip camera
-    # python genesis.py --no-voice         → skip voice
-    # python genesis.py --no-audio         → skip audio classification
-    # python genesis.py --no-network       → skip network monitoring
-    # python genesis.py --no-dashboard     → skip dashboard
-    # 
-    # combine flags:
-    # python genesis.py --no-vision --no-audio → voice + network only
-    # 
-    # for testing specific modules, run them directly:
-    # python optic.py
-    # python vocoder.py
-    # etc
-
     main()

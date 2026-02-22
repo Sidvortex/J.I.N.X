@@ -1,191 +1,81 @@
-# synapse.py - jinx's nervous system
-# handles all mqtt communication between laptop, esp32, and dashboard
-# basically the middleman that routes messages between everything
-#
-# this is separate from the mqtt usage in other files because
-# sometimes we need a central place to coordinate messages
-# and handle cross-module communication
+"""
+SYNAPSE.PY — MQTT CENTRAL HUB
+All inter-module communication goes through here.
+"""
 
 import json
 import time
-import paho.mqtt.client as mqtt
 import threading
-
-import sys
-import os
-sys.path.insert(0, os.path.dirname(__file__))
-
-from dna import *
-from blackbox import JinxDB
+import paho.mqtt.client as mqtt
+import dna
 
 
 class Synapse:
     def __init__(self):
-        print("[SYNAPSE] connecting nervous system...")
+        self.client      = mqtt.Client()
+        self.subscribers = {}  # topic -> [callback]
+        self._connected  = False
 
-        self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-        self.client.on_connect = self._on_connect
-        self.client.on_message = self._on_message
+        self.client.on_connect    = self._on_connect
+        self.client.on_message    = self._on_message
         self.client.on_disconnect = self._on_disconnect
 
-        self.db = JinxDB(DB_PATH)
+    def connect(self):
+        retries = 0
+        while retries < 10:
+            try:
+                self.client.connect(dna.MQTT_BROKER, dna.MQTT_PORT, keepalive=60)
+                self.client.loop_start()
+                time.sleep(0.5)
+                if self._connected:
+                    return
+            except Exception as e:
+                print(f"  [SYNAPSE] MQTT connect failed (attempt {retries+1}): {e}")
+                time.sleep(2)
+            retries += 1
+        raise ConnectionError("Could not connect to MQTT broker. Is Mosquitto running?")
 
-        # track system state
-        self.state = {
-            "mode": "buddy",
-            "esp32_online": False,
-            "camera_online": False,
-            "audio_online": False,
-            "battery_percent": -1,
-            "battery_voltage": 0.0,
-            "faces_detected": 0,
-            "last_alert": None,
-            "uptime_start": time.time(),
-        }
+    def _on_connect(self, client, userdata, flags, rc):
+        if rc == 0:
+            self._connected = True
+            print(f"  [SYNAPSE] MQTT connected to {dna.MQTT_BROKER}:{dna.MQTT_PORT}")
+            for topic in self.subscribers:
+                client.subscribe(topic)
+        else:
+            print(f"  [SYNAPSE] MQTT connection failed: rc={rc}")
 
-        # callbacks that other modules can register
-        # key = topic, value = list of callback functions
-        self.callbacks = {}
-
-        self.alive = True
-
-        try:
-            self.client.connect(LAPTOP_IP, MQTT_PORT)
-            self.client.loop_start()
-            print("[SYNAPSE] connected to mqtt broker")
-        except Exception as e:
-            print(f"[SYNAPSE] connection failed: {e}")
-            print("[SYNAPSE] is mosquitto running? sudo systemctl start mosquitto")
-
-        self.db.add_syslog("SYNAPSE", "nervous system online")
-
-    def _on_connect(self, client, userdata, flags, reason_code, properties=None):
-        """subscribe to ALL jinx topics when connected"""
-        print("[SYNAPSE] mqtt connected, subscribing to all topics...")
-
-        # subscribe to everything jinx related
-        self.client.subscribe("jinx/#")
-        self.state["esp32_online"] = False  # will be set when esp32 checks in
-
-    def _on_disconnect(self, client, userdata, flags, reason_code, properties=None):
-        print("[SYNAPSE] mqtt disconnected!")
-        self.db.add_syslog("SYNAPSE", "mqtt disconnected", "WARNING")
+    def _on_disconnect(self, client, userdata, rc):
+        self._connected = False
+        if rc != 0:
+            print("  [SYNAPSE] MQTT disconnected unexpectedly, reconnecting...")
+            time.sleep(2)
+            self.connect()
 
     def _on_message(self, client, userdata, msg):
-        """central message handler - routes messages to registered callbacks"""
-        topic = msg.topic
-        
+        topic   = msg.topic
+        payload = msg.payload.decode("utf-8", errors="ignore")
+        callbacks = self.subscribers.get(topic, [])
+        for cb in callbacks:
+            try:
+                threading.Thread(target=cb, args=(payload,), daemon=True).start()
+            except Exception as e:
+                print(f"  [SYNAPSE] Callback error on {topic}: {e}")
+
+    def subscribe(self, topic: str, callback):
+        if topic not in self.subscribers:
+            self.subscribers[topic] = []
+            if self._connected:
+                self.client.subscribe(topic)
+        self.subscribers[topic].append(callback)
+
+    def publish(self, topic: str, payload, retain: bool = False):
+        if isinstance(payload, dict):
+            payload = json.dumps(payload)
         try:
-            # try to parse as json
-            payload = json.loads(msg.payload.decode())
-        except:
-            # binary data (like camera frames) or plain text
-            payload = msg.payload
+            self.client.publish(topic, str(payload), retain=retain)
+        except Exception as e:
+            print(f"  [SYNAPSE] Publish error on {topic}: {e}")
 
-        # update internal state based on topic
-        self._update_state(topic, payload)
-
-        # call registered callbacks
-        if topic in self.callbacks:
-            for cb in self.callbacks[topic]:
-                try:
-                    cb(topic, payload)
-                except Exception as e:
-                    print(f"[SYNAPSE] callback error on {topic}: {e}")
-
-    def _update_state(self, topic, payload):
-        """update internal state tracking"""
-        
-        if topic == TOPICS["status"]:
-            if isinstance(payload, dict):
-                if payload.get("state") == "online":
-                    self.state["esp32_online"] = True
-                    print("[SYNAPSE] esp32 is online!")
-
-        elif topic == TOPICS["battery"]:
-            if isinstance(payload, dict):
-                self.state["battery_percent"] = payload.get("percent", -1)
-                self.state["battery_voltage"] = payload.get("voltage", 0.0)
-
-        elif topic == TOPICS["mode"]:
-            if isinstance(payload, dict):
-                self.state["mode"] = payload.get("mode", "buddy")
-
-        elif topic == TOPICS["alerts"]:
-            if isinstance(payload, dict):
-                self.state["last_alert"] = payload
-
-    def register_callback(self, topic, callback):
-        """let other modules register for specific topics
-        usage: synapse.register_callback("jinx/battery", my_function)"""
-        if topic not in self.callbacks:
-            self.callbacks[topic] = []
-        self.callbacks[topic].append(callback)
-
-    def send(self, topic, data):
-        """convenience method to publish"""
-        if isinstance(data, dict):
-            self.client.publish(topic, json.dumps(data))
-        elif isinstance(data, bytes):
-            self.client.publish(topic, data)
-        else:
-            self.client.publish(topic, str(data))
-
-    def send_eyes(self, state):
-        self.send(TOPICS["eyes"], {"state": state})
-
-    def send_led(self, mode):
-        self.send(TOPICS["led"], {"mode": mode})
-
-    def send_motor(self, action, duration=1000, speed=200):
-        self.send(TOPICS["motor"], {
-            "action": action, "duration": duration, "speed": speed
-        })
-
-    def send_sound(self, sfx_id):
-        self.send(TOPICS["sound"], {"sfx": sfx_id})
-
-    def send_buzzer(self, beeps=1):
-        self.send(TOPICS["buzzer"], {"beeps": beeps})
-
-    def get_state(self):
-        """get current system state"""
-        self.state["uptime"] = int(time.time() - self.state["uptime_start"])
-        return self.state.copy()
-
-    def flatline(self):
-        """shutdown"""
-        self.alive = False
+    def disconnect(self):
         self.client.loop_stop()
         self.client.disconnect()
-        self.db.close()
-        print("[SYNAPSE] nervous system offline")
-
-
-if __name__ == "__main__":
-    syn = Synapse()
-
-    # test sending some commands
-    print("\ntesting synapse...")
-
-    time.sleep(1)
-
-    syn.send_eyes("happy")
-    print("sent: eyes happy")
-
-    syn.send_led("purple_breathe")
-    print("sent: led purple")
-
-    syn.send_sound(1)
-    print("sent: boot sound")
-
-    print("\nstate:", syn.get_state())
-
-    print("\nlistening for messages (ctrl+c to stop)...")
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        print("\nstopped")
-
-    syn.flatline()
