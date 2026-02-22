@@ -551,7 +551,8 @@ JINX/
 │   ├── mqtt_handler.py          # MQTT communication manager
 │   ├── database.py              # SQLite event/alert logging
 │   ├── sensor_fusion.py         # Multi-modal threat scoring
-│   └── personality.py           # Personality lines + responses
+│   ├── personality.py           # Personality lines + responses
+│   └── config.py
 │
 ├── dashboard/
 │   ├── app.py                   # Streamlit cyberpunk dashboard
