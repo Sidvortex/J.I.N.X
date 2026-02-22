@@ -1,5 +1,3 @@
-
-
 <div align="center">
 
 # ⚡ J.I.N.X. ⚡
@@ -565,19 +563,19 @@ See [CODEX.md](CODEX.md) for the full naming reference.
 
 ### Quick Reference
 
-| Module | Codename | Purpose |
-|---|---|---|
-| `genesis.py` | GENESIS | Main startup — launches everything |
-| `dna.py` | DNA | Configuration and settings |
-| `blackbox.py` | BLACKBOX | SQLite database logging |
-| `psyche.py` | PSYCHE | Personality lines and prompts |
-| `optic.py` | OPTIC | Vision — camera, face, pose, mesh |
-| `vocoder.py` | VOCODER | Voice — STT, TTS, Gemini, commands |
-| `echo_hunter.py` | ECHO HUNTER | Audio — sound classification CNN |
-| `ice_wall.py` | ICE WALL | Network — device scan, anomaly detection |
-| `synapse.py` | SYNAPSE | MQTT — central message routing |
-| `hivemind.py` | HIVEMIND | Sensor fusion — combined threat scoring |
-| `nexus.py` | NEXUS | Cyberpunk command center dashboard |
+   | Module | Codename | Purpose |
+   |---|---|---|
+   | `genesis.py` | GENESIS | Main startup — launches everything |
+   | `dna.py` | DNA | Configuration and settings |
+   | `blackbox.py` | BLACKBOX | SQLite database logging |
+   | `psyche.py` | PSYCHE | Personality lines and prompts |
+   | `optic.py` | OPTIC | Vision — camera, face, pose, mesh |
+   | `vocoder.py` | VOCODER | Voice — STT, TTS, Gemini, commands |
+   | `echo_hunter.py` | ECHO HUNTER | Audio — sound classification CNN |
+   | `ice_wall.py` | ICE WALL | Network — device scan, anomaly detection |
+   | `synapse.py` | SYNAPSE | MQTT — central message routing |
+   | `hivemind.py` | HIVEMIND | Sensor fusion — combined threat scoring |
+   | `nexus.py` | NEXUS | Cyberpunk command center dashboard |
 
 ---
 
