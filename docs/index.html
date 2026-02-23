@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DESKBOT Control Panel v2.1</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════
+   CSS VARIABLES — DAY (Win95 Silver) / NIGHT (DOS Green)
+════════════════════════════════════════════ */
+:root {
+  --bg:           #C0C0C0;
+  --bg2:          #D4D0C8;
+  --surface:      #EFEFEF;
+  --win-title:    linear-gradient(90deg,#000080,#1084D0);
+  --title-text:   #FFFFFF;
+  --text:         #000000;
+  --text2:        #444444;
+  --text-dim:     #808080;
+  --accent:       #000080;
+  --accent2:      #1084D0;
+  --bl:           #FFFFFF;
+  --bm:           #808080;
+  --bd:           #404040;
+  --bx:           #000000;
+  --inset:        #FFFFFF;
+  --tab-on:       #EFEFEF;
+  --tab-off:      #C0C0C0;
+  --btn:          #D4D0C8;
+  --btn-h:        #E4E0D8;
+  --ok:           #006400;
+  --warn:         #8B4513;
+  --danger:       #CC0000;
+  --dot:          rgba(0,0,0,0.06);
+  --scrollbar:    #C0C0C0;
+  --mono:         'VT323','Share Tech Mono',monospace;
+  --ui:           'MS Sans Serif',Tahoma,Geneva,sans-serif;
+  --taskbg:       #C0C0C0;
+}
+body.night {
+  --bg:           #080808;
+  --bg2:          #0F0F0F;
+  --surface:      #141414;
+  --win-title:    linear-gradient(90deg,#002200,#004400);
+  --title-text:   #00FF41;
+  --text:         #00FF41;
+  --text2:        #00CC33;
+  --text-dim:     #006622;
+  --accent:       #00FF41;
+  --accent2:      #008822;
+  --bl:           #00AA22;
+  --bm:           #004400;
+  --bd:           #002200;
+  --bx:           #001100;
+  --inset:        #050F05;
+  --tab-on:       #141414;
+  --tab-off:      #0A0A0A;
+  --btn:          #101010;
+  --btn-h:        #1A2A1A;
+  --ok:           #00FF41;
+  --warn:         #FFAA00;
+  --danger:       #FF3300;
+  --dot:          rgba(0,255,65,0.04);
+  --scrollbar:    #001A00;
+  --taskbg:       #060606;
+}
+
+/* ══════════════════════════════════════════════
+   RESET
+════════════════════════════════════════════ */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:var(--ui);font-size:11px;
+  background:var(--bg);color:var(--text);
+  min-height:100vh;
+  background-image:radial-gradient(var(--dot) 1px,transparent 1px);
+  background-size:4px 4px;
+  transition:background .3s,color .3s;
+  overflow-x:hidden;
+}
+
+/* ══════════════════════════════════════════════
+   3D BORDERS
+════════════════════════════════════════════ */
+.raised{border:2px solid;border-color:var(--bl) var(--bd) var(--bd) var(--bl);}
+.raised-deep{border:2px solid;border-color:var(--bl) var(--bx) var(--bx) var(--bl);outline:1px solid var(--bd);}
+.sunken{border:2px solid;border-color:var(--bd) var(--bl) var(--bl) var(--bd);}
+.sunken-deep{border:2px solid;border-color:var(--bx) var(--bl) var(--bl) var(--bx);outline:1px solid var(--bd);}
+
+/* ══════════════════════════════════════════════
+   WINDOW
+════════════════════════════════════════════ */
+.window{
+  background:var(--surface);
+  border:2px solid;
+  border-color:var(--bl) var(--bx) var(--bx) var(--bl);
+  outline:1px solid var(--bm);
+  margin-bottom:4px;
+}
+.titlebar{
+  background:var(--win-title);
+  color:var(--title-text);
+  padding:3px 4px;
+  display:flex;align-items:center;gap:5px;
+  font-size:11px;font-weight:bold;
+  user-select:none;font-family:var(--ui);
+}
+.titlebar-icon{font-size:12px;}
+.titlebar-txt{flex:1;}
+.winbtns{display:flex;gap:2px;}
+.winbtn{
+  width:16px;height:14px;font-size:9px;font-weight:bold;
+  background:var(--btn);color:var(--text);
+  border:1px solid;border-color:var(--bl) var(--bd) var(--bd) var(--bl);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-family:var(--ui);
+}
+.winbtn:active{border-color:var(--bd) var(--bl) var(--bl) var(--bd);}
+.winbody{padding:6px;}
+
+/* ══════════════════════════════════════════════
+   BUTTONS
+════════════════════════════════════════════ */
+.btn{
+  background:var(--btn);color:var(--text);
+  padding:4px 10px;font-family:var(--ui);font-size:11px;
+  cursor:pointer;
+  border:2px solid;border-color:var(--bl) var(--bd) var(--bd) var(--bl);
+  outline:1px solid var(--bm);
+  min-width:60px;transition:background .1s;white-space:nowrap;
+}
+.btn:hover{background:var(--btn-h);}
+.btn:active,.btn.on{border-color:var(--bd) var(--bl) var(--bl) var(--bd);padding:5px 9px 3px 11px;}
+.btn.on{background:var(--bg2);}
+.sm{padding:2px 6px;min-width:36px;font-size:10px;outline:1px solid var(--bm);}
+.sm:active{padding:3px 5px 1px 7px;}
+.wide{min-width:120px;}
+.c-ok{color:var(--ok);}
+.c-danger{color:var(--danger);}
+
+/* ══════════════════════════════════════════════
+   TABS
+════════════════════════════════════════════ */
+.tabstrip{
+  display:flex;padding:0 2px;
+  border-bottom:2px solid var(--bm);
+  position:relative;z-index:1;
+  gap:0;overflow-x:auto;
+}
+.tab{
+  padding:4px 11px 5px;cursor:pointer;
+  background:var(--tab-off);color:var(--text2);
+  position:relative;top:2px;margin-right:2px;
+  border:2px solid;border-bottom:none;
+  border-color:var(--bl) var(--bd) transparent var(--bl);
+  font-family:var(--ui);font-size:11px;white-space:nowrap;
+  user-select:none;
+}
+.tab.on{
+  background:var(--tab-on);color:var(--text);
+  font-weight:bold;top:0;z-index:2;
+  border-color:var(--bl) var(--bd) var(--tab-on) var(--bl);
+  padding-bottom:7px;
+}
+.tab:not(.on):hover{background:var(--bg);}
+.tabpanel{
+  display:none;padding:8px 6px 6px;
+  background:var(--tab-on);
+  border:1px solid var(--bm);border-top:none;
+}
+.tabpanel.on{display:block;}
+
+/* ══════════════════════════════════════════════
+   FORM ELEMENTS
+════════════════════════════════════════════ */
+.field,.field-area{
+  background:var(--inset);color:var(--text);
+  border:2px solid;border-color:var(--bd) var(--bl) var(--bl) var(--bd);
+  padding:3px 4px;font-family:var(--mono);font-size:13px;
+  width:100%;outline:none;resize:none;
+}
+.field:focus,.field-area:focus{outline:1px dotted var(--accent);outline-offset:-2px;}
+.inset{
+  background:var(--inset);
+  border:2px solid;border-color:var(--bd) var(--bl) var(--bl) var(--bd);
+  padding:4px;overflow-y:auto;
+  font-family:var(--mono);font-size:12px;color:var(--text);
+}
+select{
+  background:var(--inset);color:var(--text);
+  border:2px solid;border-color:var(--bd) var(--bl) var(--bl) var(--bd);
+  font-family:var(--ui);font-size:11px;padding:2px 4px;
+  cursor:pointer;outline:none;width:100%;
+}
+input[type=range]{width:100%;cursor:pointer;accent-color:var(--accent);}
+input[type=checkbox]{
+  appearance:none;width:13px;height:13px;flex-shrink:0;
+  background:var(--inset);
+  border:2px solid;border-color:var(--bd) var(--bl) var(--bl) var(--bd);
+  cursor:pointer;position:relative;
+}
+input[type=checkbox]:checked::after{
+  content:'✓';position:absolute;top:-3px;left:0;
+  font-size:12px;color:var(--text);font-weight:bold;
+}
+
+/* ══════════════════════════════════════════════
+   PROGRESS BARS
+════════════════════════════════════════════ */
+.bar-wrap{
+  background:var(--inset);height:16px;position:relative;overflow:hidden;
+  border:2px solid;border-color:var(--bd) var(--bl) var(--bl) var(--bd);
+}
+.bar-fill{
+  height:100%;
+  background:repeating-linear-gradient(90deg,var(--accent) 0,var(--accent) 10px,var(--accent2) 10px,var(--accent2) 12px);
+  transition:width .5s;
+}
+.bar-txt{
+  position:absolute;right:4px;top:0;
+  font-family:var(--ui);font-size:10px;line-height:16px;
+  color:var(--text);mix-blend-mode:difference;
+}
+.doom-wrap{
+  background:#1A0000;height:16px;position:relative;overflow:hidden;
+  border:2px solid;border-color:var(--bd) var(--bl) var(--bl) var(--bd);
+}
+.doom-fill{
+  height:100%;
+  background:linear-gradient(90deg,#003300 0%,#AAAA00 55%,#CC0000 100%);
+  transition:width .6s;
+}
+.doom-fill::after{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(90deg,transparent 0,transparent 9px,rgba(0,0,0,.25) 9px,rgba(0,0,0,.25) 10px);
+}
+.doom-txt{position:absolute;right:4px;top:0;font-family:var(--mono);font-size:13px;line-height:16px;color:#FFF;text-shadow:1px 1px 0 #000;}
+
+/* ══════════════════════════════════════════════
+   SEPARATOR
+════════════════════════════════════════════ */
+.sep{height:0;border-top:2px solid var(--bd);border-bottom:1px solid var(--bl);margin:6px 0;}
+.sepv{width:0;border-left:2px solid var(--bd);border-right:1px solid var(--bl);margin:0 4px;align-self:stretch;}
+
+/* ══════════════════════════════════════════════
+   LABELS
+════════════════════════════════════════════ */
+.lbl{font-size:10px;font-family:var(--ui);color:var(--text2);margin-bottom:2px;display:block;}
+.lbl-i{font-size:10px;font-family:var(--ui);color:var(--text2);}
+
+/* ══════════════════════════════════════════════
+   TASKBAR
+════════════════════════════════════════════ */
+.taskbar{
+  position:sticky;top:0;z-index:100;
+  background:var(--taskbg);
+  border-bottom:2px solid var(--bd);
+  display:flex;align-items:center;gap:6px;
+  padding:3px 5px;height:32px;
+}
+.start{
+  background:var(--btn);font-family:var(--ui);font-size:11px;font-weight:bold;
+  padding:3px 10px;cursor:pointer;color:var(--text);
+  border:2px solid;border-color:var(--bl) var(--bd) var(--bd) var(--bl);
+  display:flex;align-items:center;gap:4px;
+}
+.start:hover{background:var(--btn-h);}
+.tray{
+  display:flex;align-items:center;gap:4px;padding:2px 6px;
+  border:1px solid;border-color:var(--bd) var(--bl) var(--bl) var(--bd);
+  font-family:var(--ui);font-size:11px;color:var(--text);
+}
+.clock{
+  font-family:var(--ui);font-size:11px;color:var(--text);
+  padding:2px 8px;min-width:68px;text-align:center;
+  border:1px solid;border-color:var(--bd) var(--bl) var(--bl) var(--bd);
+}
+.toggle{
+  width:24px;height:24px;background:var(--btn);
+  border:2px solid;border-color:var(--bl) var(--bd) var(--bd) var(--bl);
+  cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;
+}
+.toggle:hover{background:var(--btn-h);}
+.toggle:active{border-color:var(--bd) var(--bl) var(--bl) var(--bd);}
+.cled{width:10px;height:10px;border-radius:50%;background:var(--bm);display:inline-block;}
+.cled.ok{background:#00CC00;box-shadow:0 0 4px #0F0;}
+.cled.err{background:#CC0000;box-shadow:0 0 4px #F00;animation:bk .7s infinite;}
+@keyframes bk{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ══════════════════════════════════════════════
+   CAMERA
+════════════════════════════════════════════ */
+.cam{
+  background:#000;aspect-ratio:4/3;position:relative;overflow:hidden;
+  border:2px solid;border-color:var(--bd) var(--bl) var(--bl) var(--bd);
+}
+#camimg{width:100%;height:100%;object-fit:cover;display:block;}
+.cam-corners span{
+  position:absolute;width:12px;height:12px;
+  border-color:rgba(0,255,100,.7);border-style:solid;
+}
+.cam-corners .tl{top:4px;left:4px;border-width:2px 0 0 2px;}
+.cam-corners .tr{top:4px;right:4px;border-width:2px 2px 0 0;}
+.cam-corners .bl{bottom:4px;left:4px;border-width:0 0 2px 2px;}
+.cam-corners .br{bottom:4px;right:4px;border-width:0 2px 2px 0;}
+.cam-scan{position:absolute;left:0;right:0;height:1px;background:rgba(0,255,100,.4);animation:scan 3s linear infinite;}
+@keyframes scan{0%{top:0}100%{top:100%}}
+.cam-hud{
+  position:absolute;bottom:0;left:0;right:0;
+  background:rgba(0,0,0,.7);color:#0F0;
+  font-family:var(--mono);font-size:12px;
+  padding:2px 6px;display:flex;justify-content:space-between;
+}
+
+/* ══════════════════════════════════════════════
+   MODE BUTTONS
+════════════════════════════════════════════ */
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:3px;}
+.mbtn{
+  background:var(--btn);color:var(--text);
+  padding:6px 2px;text-align:center;cursor:pointer;
+  border:2px solid;border-color:var(--bl) var(--bd) var(--bd) var(--bl);
+  font-family:var(--ui);font-size:10px;font-weight:bold;
+}
+.mbtn:hover{background:var(--btn-h);}
+.mbtn.on{border-color:var(--bd) var(--bl) var(--bl) var(--bd);background:var(--bg);}
+.mbtn .mi{font-size:18px;display:block;margin-bottom:2px;}
+.mbtn .ml{font-size:9px;letter-spacing:.8px;text-transform:uppercase;}
+
+/* ══════════════════════════════════════════════
+   DPAD
+════════════════════════════════════════════ */
+.dpad{display:grid;grid-template-columns:repeat(3,36px);grid-template-rows:repeat(3,36px);gap:2px;justify-content:center;}
+.dp{
+  width:36px;height:36px;background:var(--btn);
+  border:2px solid;border-color:var(--bl) var(--bd) var(--bd) var(--bl);
+  cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;
+  color:var(--text);user-select:none;
+}
+.dp:hover{background:var(--btn-h);}
+.dp:active{border-color:var(--bd) var(--bl) var(--bl) var(--bd);}
+.dp.ctr{font-size:10px;font-weight:bold;color:var(--danger);}
+
+/* ══════════════════════════════════════════════
+   LED SWATCHES
+════════════════════════════════════════════ */
+.swatches{display:flex;flex-wrap:wrap;gap:3px;}
+.sw{
+  width:26px;height:26px;cursor:pointer;
+  border:2px solid;border-color:rgba(255,255,255,.5) rgba(0,0,0,.3) rgba(0,0,0,.3) rgba(255,255,255,.5);
+  position:relative;
+}
+.sw:hover{outline:2px dotted var(--accent);outline-offset:1px;}
+.sw.on{outline:2px solid var(--text);}
+.sw span{
+  position:absolute;inset:0;font-size:8px;
+  display:flex;align-items:center;justify-content:center;
+  color:rgba(255,255,255,.9);text-shadow:0 0 3px #000;
+  font-family:var(--ui);font-weight:bold;
+}
+
+/* ══════════════════════════════════════════════
+   STAT CELLS
+════════════════════════════════════════════ */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:3px;}
+.stat{background:var(--inset);border:2px solid;border-color:var(--bd) var(--bl) var(--bl) var(--bd);padding:3px 5px;}
+.stat .sl{font-size:9px;color:var(--text-dim);font-family:var(--ui);}
+.stat .sv{font-family:var(--mono);font-size:13px;color:var(--text);}
+
+/* ══════════════════════════════════════════════
+   SENSOR GRID
+════════════════════════════════════════════ */
+.sensors{display:grid;grid-template-columns:1fr 1fr;gap:3px;}
+
+/* ══════════════════════════════════════════════
+   LOG
+════════════════════════════════════════════ */
+.logline{font-family:var(--mono);font-size:12px;padding:2px 0;border-bottom:1px solid var(--bm);display:flex;gap:6px;}
+.lt{color:var(--text-dim);white-space:nowrap;}
+.lk{font-weight:bold;white-space:nowrap;}
+.lk.safe{color:var(--ok)}.lk.threat{color:var(--danger)}.lk.warn{color:var(--warn)}.lk.info{color:var(--accent)}
+.lm{color:var(--text);word-break:break-all;}
+
+/* ══════════════════════════════════════════════
+   NETWORK TABLE
+════════════════════════════════════════════ */
+.netrow{display:flex;gap:4px;padding:2px 4px;font-family:var(--mono);font-size:11px;border-bottom:1px solid var(--bm);}
+.netrow.hdr{color:var(--text-dim);border-bottom:2px solid var(--bm);font-weight:bold;}
+.netrow.t{color:var(--ok)}.netrow.u{color:var(--warn)}
+.nip{min-width:110px}.nmac{min-width:130px;opacity:.8}.nhost{flex:1;opacity:.9}.nst{min-width:65px}
+
+/* ══════════════════════════════════════════════
+   RESPONSE BOX
+════════════════════════════════════════════ */
+.resp{
+  background:var(--inset);min-height:80px;padding:6px;
+  border:2px solid;border-color:var(--bd) var(--bl) var(--bl) var(--bd);
+  font-family:var(--mono);font-size:13px;color:var(--text);
+  white-space:pre-wrap;word-break:break-word;
+}
+.typing::after{content:'▋';animation:blk .7s step-end infinite;color:var(--accent);}
+@keyframes blk{0%,100%{opacity:1}50%{opacity:0}}
+
+/* ══════════════════════════════════════════════
+   STATUS BAR
+════════════════════════════════════════════ */
+.statusbar{
+  background:var(--bg);border-top:2px solid var(--bd);
+  display:flex;gap:4px;padding:2px 5px;flex-wrap:wrap;
+  font-size:10px;font-family:var(--ui);color:var(--text2);
+}
+.scell{
+  padding:1px 6px;
+  border:1px solid;border-color:var(--bd) var(--bl) var(--bl) var(--bd);
+  white-space:nowrap;
+}
+
+/* ══════════════════════════════════════════════
+   LAYOUT
+════════════════════════════════════════════ */
+.desktop{padding:5px;min-height:calc(100vh - 44px);}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;}
+.col{display:flex;flex-direction:column;gap:4px;}
+.row{display:flex;gap:4px;align-items:flex-start;}
+.center{display:flex;align-items:center;justify-content:center;}
+.mgrid{display:grid;grid-template-columns:260px 1fr 185px;gap:4px;}
+@media(max-width:880px){.mgrid{grid-template-columns:1fr;}.g2{grid-template-columns:1fr;}}
+
+/* ══════════════════════════════════════════════
+   SPLASH
+════════════════════════════════════════════ */
+#splash{
+  position:fixed;inset:0;z-index:9999;
+  background:#000080;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;color:#fff;
+  font-family:var(--mono);transition:opacity .35s;
+}
+#splash .st{font-size:40px;letter-spacing:5px;margin-bottom:8px;}
+#splash .ss{font-size:15px;color:#aaa;margin-bottom:24px;}
+#splash .bw{width:280px;height:20px;border:2px solid #fff;overflow:hidden;}
+#splash .bf{height:100%;width:0;background:repeating-linear-gradient(90deg,#00AAFF 0,#00AAFF 10px,#0080CC 10px,#0080CC 12px);transition:width .05s;}
+#splash .bm{margin-top:10px;font-size:12px;color:#888;}
+#splash.gone{opacity:0;pointer-events:none;}
+
+/* scrollbars */
+::-webkit-scrollbar{width:16px;height:16px;}
+::-webkit-scrollbar-track{background:var(--scrollbar);border:1px solid var(--bm);}
+::-webkit-scrollbar-thumb{background:var(--bg);border:2px solid;border-color:var(--bl) var(--bd) var(--bd) var(--bl);}
+::-webkit-scrollbar-button{background:var(--btn);border:2px solid;border-color:var(--bl) var(--bd) var(--bd) var(--bl);height:16px;display:block;}
+
+/* face bubbles */
+.face-bubble{
+  font-family:var(--mono);font-size:12px;
+  padding:2px 0;border-bottom:1px solid var(--bm);
+}
+.face-bubble.safe{color:var(--ok);}
+.face-bubble.threat{color:var(--danger);}
+.face-bubble.unknown{color:var(--warn);}
+
+/* check row */
+.ck{display:flex;align-items:center;gap:6px;font-family:var(--ui);font-size:11px;color:var(--text);cursor:pointer;padding:2px 0;}
+
+/* upload drop area */
+.dropzone{
+  border:2px solid;border-color:var(--bd) var(--bl) var(--bl) var(--bd);
+  background:var(--inset);padding:16px;text-align:center;margin:4px 0;cursor:pointer;
+}
+.dropzone:hover{outline:2px dashed var(--accent);}
+</style>
+</head>
+<body>
+
+<!-- ══ SPLASH ══ -->
+<div id="splash">
+  <div class="st">DESKBOT</div>
+  <div class="ss">Control Panel v2.1 &nbsp;·&nbsp; Booting system modules...</div>
+  <div class="bw"><div class="bf" id="sbf"></div></div>
+  <div class="bm" id="sbm">Initializing...</div>
+</div>
+
+<!-- ══ TASKBAR ══ -->
+<div class="taskbar">
+  <div class="start">🤖 DESKBOT</div>
+  <div class="sepv"></div>
+
+  <div class="tray">
+    <span class="cled err" id="cled"></span>
+    <span id="clbl" style="font-size:10px;">Connecting...</span>
+  </div>
+
+  <div class="tray">
+    MODE: <b id="tbmode" style="color:var(--accent);margin-left:3px;">BUDDY</b>
+  </div>
+
+  <div class="tray">🔋 <span id="tbbatt">—%</span></div>
+
+  <div style="flex:1"></div>
+
+  <button class="toggle" id="themetoggle" title="Toggle Night / Day">🌙</button>
+  <div class="clock" id="clk">00:00 AM</div>
+</div>
+
+<!-- ══ DESKTOP ══ -->
+<div class="desktop">
+
+  <!-- Alert banner -->
+  <div id="alertbar" style="display:none;margin-bottom:4px;">
+    <div style="background:#CC0000;color:#fff;padding:3px 8px;font-family:var(--ui);font-size:11px;font-weight:bold;display:flex;align-items:center;gap:8px;">
+      ⚠️ ALERT: <span id="alerttxt"></span>
+      <button class="btn sm" onclick="dismissAlert()" style="margin-left:auto;">Dismiss</button>
+    </div>
+  </div>
+
+  <div class="mgrid">
+
+    <!-- ═══════════════ LEFT COLUMN ═══════════════ -->
+    <div class="col">
+
+      <!-- Camera -->
+      <div class="window">
+        <div class="titlebar">
+          <span class="titlebar-icon">📷</span>
+          <span class="titlebar-txt">Camera Feed — OPTIC</span>
+          <div class="winbtns">
+            <button class="winbtn">_</button>
+            <button class="winbtn">□</button>
+          </div>
+        </div>
+        <div style="padding:4px;">
+          <div class="cam">
+            <img id="camimg" src="" alt=""
+              onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22320%22 height=%22240%22><rect fill=%22%23000%22/><text x=%22160%22 y=%22115%22 font-family=%22monospace%22 font-size=%2214%22 fill=%22%2300FF00%22 text-anchor=%22middle%22>NO SIGNAL</text><text x=%22160%22 y=%22135%22 font-family=%22monospace%22 font-size=%2210%22 fill=%22%23555%22 text-anchor=%22middle%22>Check DroidCam app</text></svg>'">
+            <div class="cam-corners">
+              <span class="tl"></span><span class="tr"></span>
+              <span class="bl"></span><span class="br"></span>
+            </div>
+            <div class="cam-scan"></div>
+            <div class="cam-hud">
+              <span id="cfps">-- fps</span>
+              <span id="cfaces">faces: 0</span>
+              <span style="animation:blk 1.2s step-end infinite;">● REC</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="window">
+        <div class="titlebar">
+          <span class="titlebar-icon">📊</span>
+          <span class="titlebar-txt">System Status</span>
+        </div>
+        <div class="winbody col" style="gap:5px;">
+          <div>
+            <span class="lbl">Battery</span>
+            <div class="bar-wrap">
+              <div class="bar-fill" id="battf" style="width:0%"></div>
+              <div class="bar-txt" id="battp">0%</div>
+            </div>
+          </div>
+          <div>
+            <span class="lbl">Doom Level (Threat Score)</span>
+            <div class="doom-wrap">
+              <div class="doom-fill" id="doomf" style="width:0%"></div>
+              <div class="doom-txt" id="doomv">0%</div>
+            </div>
+          </div>
+          <div class="sep"></div>
+          <div class="stats">
+            <div class="stat"><div class="sl">Last Audio</div><div class="sv" id="saud">—</div></div>
+            <div class="stat"><div class="sl">Devices</div><div class="sv" id="sdev">—</div></div>
+            <div class="stat"><div class="sl">Uptime</div><div class="sv" id="supt">—</div></div>
+            <div class="stat"><div class="sl">Mode</div><div class="sv" id="smod" style="color:var(--accent)">BUDDY</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end left -->
+
+    <!-- ═══════════════ CENTER (TABS) ═══════════════ -->
+    <div class="window">
+      <div class="titlebar">
+        <span class="titlebar-icon">🎮</span>
+        <span class="titlebar-txt">DESKBOT Control Panel — Main Interface</span>
+        <div class="winbtns">
+          <button class="winbtn">_</button>
+          <button class="winbtn">□</button>
+          <button class="winbtn" style="color:#CC0000;">✕</button>
+        </div>
+      </div>
+
+      <div style="padding:6px 6px 0;">
+        <div class="tabstrip">
+          <div class="tab on" onclick="sTab(this,'tc')">🕹 Control</div>
+          <div class="tab" onclick="sTab(this,'tl')">💡 LEDs</div>
+          <div class="tab" onclick="sTab(this,'ta')">🤖 Agent</div>
+          <div class="tab" onclick="sTab(this,'tv')">🎙 Voice</div>
+          <div class="tab" onclick="sTab(this,'tn')">📡 Network</div>
+          <div class="tab" onclick="sTab(this,'tlog')">📋 Log</div>
+        </div>
+
+        <!-- ── CONTROL ── -->
+        <div class="tabpanel on" id="tc">
+          <div class="g2" style="gap:8px;">
+            <div class="col">
+              <span class="lbl">Operating Mode</span>
+              <div class="modes">
+                <button class="mbtn on" id="mb-buddy"    onclick="setMode('BUDDY')">    <span class="mi">😊</span><span class="ml">BUDDY</span></button>
+                <button class="mbtn"    id="mb-sentinel" onclick="setMode('SENTINEL')"> <span class="mi">🛡️</span><span class="ml">SENTINEL</span></button>
+                <button class="mbtn"    id="mb-roast"    onclick="setMode('ROAST')">    <span class="mi">🔥</span><span class="ml">ROAST</span></button>
+                <button class="mbtn"    id="mb-agent"    onclick="setMode('AGENT')">    <span class="mi">📄</span><span class="ml">AGENT</span></button>
+              </div>
+              <button class="btn" onclick="setMode('SLEEP')" style="width:100%;margin-top:2px;">😴 Sleep Mode</button>
+            </div>
+
+            <div class="col">
+              <span class="lbl">Movement</span>
+              <div class="center" style="flex:1;">
+                <div class="dpad">
+                  <div></div>
+                  <button class="dp" onmousedown="mot('forward')"  onmouseup="mot('stop')" ontouchstart="mot('forward')" ontouchend="mot('stop')">▲</button>
+                  <div></div>
+                  <button class="dp" onmousedown="mot('left')"     onmouseup="mot('stop')" ontouchstart="mot('left')" ontouchend="mot('stop')">◄</button>
+                  <button class="dp ctr" onclick="mot('stop')">■</button>
+                  <button class="dp" onmousedown="mot('right')"    onmouseup="mot('stop')" ontouchstart="mot('right')" ontouchend="mot('stop')">►</button>
+                  <div></div>
+                  <button class="dp" onmousedown="mot('backward')" onmouseup="mot('stop')" ontouchstart="mot('backward')" ontouchend="mot('stop')">▼</button>
+                  <div></div>
+                </div>
+              </div>
+              <div class="sep"></div>
+              <span class="lbl">Speed</span>
+              <select id="spd" onchange="api('command',{type:'speed',value:+this.value})">
+                <option value="100">Slow (100/255)</option>
+                <option value="180" selected>Normal (180/255)</option>
+                <option value="255">Fast (255/255)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="sep"></div>
+          <div class="g2" style="gap:8px;">
+            <div class="col">
+              <span class="lbl">Speak (TTS)</span>
+              <input type="text" class="field" id="spkin" placeholder="Type text to speak..." style="height:28px;" onkeydown="if(event.key==='Enter')speak()">
+              <button class="btn" onclick="speak()">▶ Speak</button>
+            </div>
+            <div class="col">
+              <span class="lbl">Roast</span>
+              <input type="text" class="field" id="rostin" placeholder="Name to roast..." style="height:28px;" onkeydown="if(event.key==='Enter')roast()">
+              <button class="btn c-danger" onclick="roast()">🔥 Roast</button>
+            </div>
+          </div>
+
+          <div class="sep"></div>
+          <span class="lbl">Sound Effects</span>
+          <div style="display:flex;flex-wrap:wrap;gap:3px;">
+            <button class="btn sm" onclick="snd('wake')">Wake</button>
+            <button class="btn sm" onclick="snd('alert')">Alert</button>
+            <button class="btn sm" onclick="snd('boot')">Boot</button>
+            <button class="btn sm" onclick="snd('roast')">Roast SFX</button>
+            <button class="btn sm" onclick="snd('battery_low')">Low Batt</button>
+          </div>
+
+          <div class="sep"></div>
+          <div class="g2" style="gap:8px;">
+            <div class="col">
+              <span class="lbl">Register Face</span>
+              <input type="text" class="field" id="facen" placeholder="Name..." style="height:28px;">
+              <div style="display:flex;gap:3px;">
+                <button class="btn c-ok" onclick="regFace('safe')" style="flex:1;">✓ Safe</button>
+                <button class="btn c-danger" onclick="regFace('threat')" style="flex:1;">⚠ Threat</button>
+              </div>
+            </div>
+            <div class="col">
+              <span class="lbl">Eye State</span>
+              <select id="eyesel" style="margin-bottom:3px;">
+                <option value="neutral">Neutral</option><option value="happy">Happy</option>
+                <option value="angry">Angry</option><option value="sleepy">Sleepy</option>
+                <option value="scanning">Scanning</option><option value="threat">Threat</option>
+                <option value="roast">Roast</option><option value="music">Music</option>
+                <option value="thinking">Thinking</option><option value="talking">Talking</option>
+              </select>
+              <button class="btn" onclick="api('command',{type:'eyes',state:document.getElementById('eyesel').value})">Set Eyes</button>
+            </div>
+          </div>
+        </div><!-- /tc -->
+
+        <!-- ── LEDs ── -->
+        <div class="tabpanel" id="tl">
+          <span class="lbl">LED Effect</span>
+          <div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px;">
+            <button class="btn sm" onclick="led('off')">Off</button>
+            <button class="btn sm" onclick="led('normal')">Normal</button>
+            <button class="btn sm" onclick="led('boot')">Boot</button>
+            <button class="btn sm" onclick="led('scan')">Scan</button>
+            <button class="btn sm" onclick="led('alert')">Alert</button>
+            <button class="btn sm" onclick="led('threat')">Threat</button>
+            <button class="btn sm" onclick="led('music')">Music</button>
+            <button class="btn sm" onclick="led('party')">Party 🎉</button>
+            <button class="btn sm" onclick="led('rainbow')">Rainbow</button>
+            <button class="btn sm" onclick="led('battery_low')">Batt Low</button>
+          </div>
+          <div class="sep"></div>
+          <span class="lbl">Color</span>
+          <div class="swatches">
+            <div class="sw" style="background:#FF0000" onclick="led('color:red')" title="Red"><span>R</span></div>
+            <div class="sw" style="background:#FF6600" onclick="led('color:orange')" title="Orange"><span>O</span></div>
+            <div class="sw" style="background:#FFFF00" onclick="led('color:yellow')" title="Yellow"><span>Y</span></div>
+            <div class="sw" style="background:#00BB00" onclick="led('color:green')" title="Green"><span>G</span></div>
+            <div class="sw" style="background:#00FFFF" onclick="led('color:cyan')" title="Cyan"><span>C</span></div>
+            <div class="sw" style="background:#0000FF" onclick="led('color:blue')" title="Blue"><span>B</span></div>
+            <div class="sw" style="background:#8800FF" onclick="led('color:purple')" title="Purple"><span>P</span></div>
+            <div class="sw" style="background:#FF00FF" onclick="led('color:pink')" title="Pink"><span>M</span></div>
+            <div class="sw" style="background:#FFFFFF" onclick="led('color:white')" title="White"><span style="color:#999">W</span></div>
+            <div class="sw" style="background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red)" onclick="led('rainbow')"><span>🌈</span></div>
+          </div>
+          <div class="sep"></div>
+          <span class="lbl">Brightness</span>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <input type="range" min="0" max="255" value="200" id="brs" oninput="document.getElementById('brv').textContent=this.value">
+            <span id="brv" style="font-family:var(--mono);font-size:13px;min-width:28px;">200</span>
+            <button class="btn sm" onclick="api('command',{type:'brightness',value:+document.getElementById('brs').value})">Set</button>
+          </div>
+        </div><!-- /tl -->
+
+        <!-- ── AGENT ── -->
+        <div class="tabpanel" id="ta">
+          <div style="display:flex;gap:2px;margin-bottom:6px;border-bottom:1px solid var(--bm);padding-bottom:3px;">
+            <button class="btn sm on" id="sqa" onclick="sSub('qa')">📖 Q&A</button>
+            <button class="btn sm"    id="srv" onclick="sSub('rv')">💻 Review</button>
+            <button class="btn sm"    id="sup" onclick="sSub('up')">📤 Upload</button>
+          </div>
+
+          <div id="qa-p">
+            <span class="lbl">Ask JINX about your uploaded documents:</span>
+            <textarea class="field-area" id="qain" rows="3" placeholder="e.g. What does chapter 3 say about neural networks?"></textarea>
+            <div style="display:flex;gap:3px;margin-top:3px;">
+              <button class="btn" onclick="doQA()" style="flex:1;">▶ Ask</button>
+              <button class="btn sm" onclick="document.getElementById('qain').value='';document.getElementById('qar').textContent='Waiting...'">Clear</button>
+            </div>
+            <div class="sep"></div>
+            <span class="lbl">Response:</span>
+            <div class="resp" id="qar">Waiting for query...</div>
+          </div>
+
+          <div id="rv-p" style="display:none;">
+            <span class="lbl">Paste code to review:</span>
+            <textarea class="field-area" id="rvin" rows="8" placeholder="Paste Python, JS, Java, C/C++ here..."></textarea>
+            <div style="display:flex;gap:3px;margin-top:3px;">
+              <select id="rvlang" style="flex:1;">
+                <option value="python">Python</option><option value="javascript">JavaScript</option>
+                <option value="java">Java</option><option value="cpp">C/C++</option>
+                <option value="auto">Auto-detect</option>
+              </select>
+              <button class="btn" onclick="doReview()">🔍 Review</button>
+            </div>
+            <div class="sep"></div>
+            <div class="resp" id="rvr" style="min-height:80px;">Paste code above...</div>
+          </div>
+
+          <div id="up-p" style="display:none;">
+            <span class="lbl">Upload documents to JINX's knowledge base:</span>
+            <div class="dropzone" id="dz" onclick="document.getElementById('fu').click()"
+              ondragover="event.preventDefault();this.style.outline='2px dashed var(--accent)'"
+              ondragleave="this.style.outline=''"
+              ondrop="event.preventDefault();this.style.outline='';doUpload(event.dataTransfer.files)">
+              <div style="font-size:24px;margin-bottom:4px;">📄</div>
+              <div style="font-family:var(--ui);font-size:11px;color:var(--text2);">Drag & drop — or click to browse</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:3px;">PDF · TXT · DOCX · MD · PY · JS · JAVA</div>
+            </div>
+            <input type="file" id="fu" accept=".pdf,.txt,.md,.docx,.py,.js,.java" multiple style="display:none;" onchange="doUpload(this.files)">
+            <div id="upst" style="font-family:var(--mono);font-size:12px;color:var(--text2);margin-top:4px;"></div>
+          </div>
+        </div><!-- /ta -->
+
+        <!-- ── VOICE ── -->
+        <div class="tabpanel" id="tv">
+          <div class="g2" style="gap:8px;">
+            <div class="col">
+              <span class="lbl">Manual Command</span>
+              <input type="text" class="field" id="vcin" placeholder="hey jinx, play music..." style="height:28px;" onkeydown="if(event.key==='Enter')sendvc()">
+              <button class="btn" onclick="sendvc()">▶ Send</button>
+              <div class="sep"></div>
+              <span class="lbl">Quick Commands</span>
+              <div class="col" style="gap:2px;">
+                <button class="btn sm" onclick="vc('hey jinx, status')">📊 Status Report</button>
+                <button class="btn sm" onclick="vc('hey jinx, play music')">🎵 Play Music</button>
+                <button class="btn sm" onclick="vc('hey jinx, stop music')">⏹ Stop Music</button>
+                <button class="btn sm" onclick="vc('hey jinx, wake up')">👁 Wake Up</button>
+                <button class="btn sm" onclick="vc('hey jinx, goodnight')">🌙 Goodnight</button>
+              </div>
+            </div>
+            <div class="col">
+              <span class="lbl">TTS Voice</span>
+              <select id="voiceSel">
+                <option value="en-US-AriaNeural">Aria (US Female)</option>
+                <option value="en-US-GuyNeural">Guy (US Male)</option>
+                <option value="en-GB-SoniaNeural">Sonia (UK Female)</option>
+                <option value="en-AU-WilliamNeural">William (AU Male)</option>
+                <option value="en-IN-NeerjaNeural">Neerja (IN Female)</option>
+              </select>
+              <div class="sep"></div>
+              <span class="lbl">STT Engine</span>
+              <label class="ck"><input type="checkbox" id="cVosk" checked> Offline (Vosk) — Private</label>
+              <label class="ck"><input type="checkbox" id="cGoogle"> Online (Google) — Better accuracy</label>
+              <div class="sep"></div>
+              <span class="lbl">Wake Word</span>
+              <input type="text" class="field" id="wwrd" value="hey jinx" style="height:28px;">
+              <button class="btn" onclick="saveVoiceSettings()">💾 Apply</button>
+            </div>
+          </div>
+        </div><!-- /tv -->
+
+        <!-- ── NETWORK ── -->
+        <div class="tabpanel" id="tn">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span class="lbl" style="margin:0;">Network Devices (LAN)</span>
+            <button class="btn sm" onclick="doNetScan()">↻ Scan</button>
+          </div>
+          <div class="inset" id="netlist" style="height:160px;">
+            <div class="netrow hdr"><span class="nip">IP Address</span><span class="nmac">MAC Address</span><span class="nhost">Hostname</span><span class="nst">Status</span></div>
+            <div class="netrow t"><span class="nip">192.168.1.100</span><span class="nmac">AA:BB:CC:DD:EE:01</span><span class="nhost">laptop-main</span><span class="nst">✓ Trusted</span></div>
+            <div class="netrow t"><span class="nip">192.168.1.101</span><span class="nmac">AA:BB:CC:DD:EE:02</span><span class="nhost">deskbot-esp32</span><span class="nst">✓ Trusted</span></div>
+          </div>
+          <div class="sep"></div>
+          <div class="g2" style="gap:4px;">
+            <div class="stat"><div class="sl">Anomaly Model</div><div class="sv" style="color:var(--ok)">ACTIVE (RF)</div></div>
+            <div class="stat"><div class="sl">Last Scan</div><div class="sv" id="lscan">Never</div></div>
+          </div>
+        </div><!-- /tn -->
+
+        <!-- ── LOG ── -->
+        <div class="tabpanel" id="tlog">
+          <div style="display:flex;gap:4px;margin-bottom:4px;flex-wrap:wrap;">
+            <select id="logf" style="flex:1;" onchange="filtLog(this.value)">
+              <option value="all">All Events</option>
+              <option value="FACE">Face</option>
+              <option value="AUDIO">Audio</option>
+              <option value="NET">Network</option>
+              <option value="SYS">System</option>
+            </select>
+            <button class="btn sm" onclick="loglines=[];renderLog()">Clear</button>
+            <button class="btn sm" onclick="exportLog()">Export</button>
+          </div>
+          <div class="inset" id="logbox" style="height:210px;overflow-y:auto;"></div>
+        </div><!-- /tlog -->
+
+      </div><!-- /tab wrapper -->
+    </div><!-- /center window -->
+
+    <!-- ═══════════════ RIGHT COLUMN ═══════════════ -->
+    <div class="col">
+
+      <!-- Quick Actions -->
+      <div class="window">
+        <div class="titlebar">
+          <span class="titlebar-icon">⚡</span>
+          <span class="titlebar-txt">Quick Actions</span>
+        </div>
+        <div class="winbody col" style="gap:3px;">
+          <button class="btn c-danger" onclick="api('command',{type:'emergency_stop'})" style="font-weight:bold;">🛑 EMERGENCY STOP</button>
+          <div class="sep"></div>
+          <button class="btn" onclick="setMode('SENTINEL')">🛡️ Arm Sentinel</button>
+          <button class="btn" onclick="led('alert')">🔴 Trigger Alert</button>
+          <button class="btn" onclick="led('party')">🎉 Party Mode</button>
+          <button class="btn" onclick="dismissAlert()">✓ Clear Alert</button>
+          <div class="sep"></div>
+          <button class="btn" onclick="api('command',{type:'reboot_esp'})">♻️ Reboot ESP32</button>
+          <button class="btn" onclick="api('command',{type:'restart_server'})">♻️ Restart Server</button>
+        </div>
+      </div>
+
+      <!-- Faces -->
+      <div class="window">
+        <div class="titlebar"><span class="titlebar-icon">👤</span><span class="titlebar-txt">Detected Faces</span></div>
+        <div class="winbody">
+          <div class="inset" id="facelist" style="height:88px;font-size:12px;">
+            <span style="color:var(--text-dim)">No faces detected</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sensors -->
+      <div class="window">
+        <div class="titlebar"><span class="titlebar-icon">📡</span><span class="titlebar-txt">Sensor Readings</span></div>
+        <div class="winbody">
+          <div class="sensors" style="gap:3px;">
+            <div class="stat"><div class="sl">US1 (cm)</div><div class="sv" id="sus1">—</div></div>
+            <div class="stat"><div class="sl">US2 (cm)</div><div class="sv" id="sus2">—</div></div>
+            <div class="stat"><div class="sl">ToF↓ (mm)</div><div class="sv" id="stofd">—</div></div>
+            <div class="stat"><div class="sl">ToF→ (mm)</div><div class="sv" id="stoff">—</div></div>
+            <div class="stat"><div class="sl">IR Left</div><div class="sv" id="sirl">—</div></div>
+            <div class="stat"><div class="sl">IR Right</div><div class="sv" id="sirr">—</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /right -->
+  </div><!-- /mgrid -->
+</div><!-- /desktop -->
+
+<!-- ══ STATUS BAR ══ -->
+<div class="statusbar">
+  <div class="scell" id="sbconn">● Offline</div>
+  <div class="scell" id="sbmode">Mode: BUDDY</div>
+  <div class="scell" id="sbfps">Camera: — FPS</div>
+  <div class="scell" id="sbmqtt">MQTT: —</div>
+  <div class="scell" style="margin-left:auto" id="sbtime">—</div>
+</div>
+
+<script>
+/* ════ BOOT SPLASH ════ */
+const bmsgs=['Initializing SYNAPSE (MQTT)...','Loading OPTIC (Vision)...','Loading VOCODER (Voice)...','Loading ECHO HUNTER (Audio)...','Loading HIVEMIND (Fusion)...','Loading AGENT (Documents)...','Loading ICE WALL (Network)...','Connecting to broker...','Ready.'];
+let bi=0;
+const sbf=document.getElementById('sbf'),sbm=document.getElementById('sbm');
+function bootStep(){
+  if(bi>=bmsgs.length){document.getElementById('splash').classList.add('gone');setTimeout(()=>document.getElementById('splash').remove(),400);return;}
+  sbf.style.width=Math.round(bi/(bmsgs.length-1)*100)+'%';
+  sbm.textContent=bmsgs[bi++];setTimeout(bootStep,260);}
+setTimeout(bootStep,300);
+
+/* ════ THEME TOGGLE ════ */
+let night=false;
+document.getElementById('themetoggle').addEventListener('click',()=>{
+  night=!night;
+  document.body.classList.toggle('night',night);
+  document.getElementById('themetoggle').textContent=night?'☀️':'🌙';
+  log('SYS','info',night?'Night mode ON':'Day mode ON');
+});
+
+/* ════ CLOCK ════ */
+let t0=Date.now();
+function tick(){
+  const n=new Date(),h=n.getHours(),m=n.getMinutes(),s=n.getSeconds();
+  const ap=h>=12?'PM':'AM',hh=h%12||12;
+  const mm=('0'+m).slice(-2),ss=('0'+s).slice(-2);
+  document.getElementById('clk').textContent=hh+':'+mm+' '+ap;
+  document.getElementById('sbtime').textContent=n.toLocaleDateString()+' '+hh+':'+mm+':'+ss+' '+ap;
+  const el=Math.floor((Date.now()-t0)/1000);
+  document.getElementById('supt').textContent=Math.floor(el/3600)+'h '+Math.floor(el%3600/60)+'m '+el%60+'s';
+}
+setInterval(tick,1000);tick();
+
+/* ════ TABS ════ */
+function sTab(el,id){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.tabpanel').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');document.getElementById(id).classList.add('on');
+}
+function sSub(w){
+  ['qa','rv','up'].forEach(n=>{
+    document.getElementById(n+'-p').style.display=n===w?'':'none';
+    document.getElementById('s'+n).classList.toggle('on',n===w);
+  });
+}
+
+/* ════ API ════ */
+async function api(ep,body=null){
+  try{
+    const r=await fetch('/api/'+ep,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{method:'GET'});
+    if(!r.ok)throw new Error();return await r.json();
+  }catch{setConn(false);return null;}
+}
+
+/* ════ CONNECTIVITY ════ */
+let conn=false;
+function setConn(ok){
+  if(ok===conn)return;conn=ok;
+  const l=document.getElementById('cled');
+  l.className='cled '+(ok?'ok':'err');
+  document.getElementById('clbl').textContent=ok?'Connected':'Offline';
+  document.getElementById('sbconn').textContent=ok?'● Connected':'● Offline';
+  if(!conn)log('SYS','threat','Connection lost');
+  else log('SYS','info','Connected to DESKBOT');
+}
+
+/* ════ STATE POLLING ════ */
+let curMode='BUDDY';
+async function poll(){
+  const d=await api('state');if(!d)return;setConn(true);
+  // battery
+  const b=d.battery||0;
+  document.getElementById('battf').style.width=b+'%';
+  document.getElementById('battp').textContent=b+'%';
+  document.getElementById('tbbatt').textContent=b+'%';
+  // doom
+  const dm=Math.round((d.doom_level||0)*100);
+  document.getElementById('doomf').style.width=dm+'%';
+  document.getElementById('doomv').textContent=dm+'%';
+  // mode
+  if(d.mode&&d.mode!==curMode){curMode=d.mode;setMode_UI(d.mode);}
+  // audio
+  if(d.last_audio)document.getElementById('saud').textContent=d.last_audio;
+  document.getElementById('sdev').textContent=(d.device_count||0)+' on LAN';
+  // sensors
+  if(d.sensors){const s=d.sensors;
+    document.getElementById('sus1').textContent=s.us1_cm??'—';
+    document.getElementById('sus2').textContent=s.us2_cm??'—';
+    document.getElementById('stofd').textContent=s.tof_down_mm??'—';
+    document.getElementById('stoff').textContent=s.tof_fwd_mm??'—';
+    document.getElementById('sirl').textContent=s.ir_left?'EDGE':'OK';
+    document.getElementById('sirr').textContent=s.ir_right?'EDGE':'OK';
+  }
+  // faces
+  if(d.faces){
+    document.getElementById('cfaces').textContent='faces: '+d.faces.length;
+    document.getElementById('facelist').innerHTML=d.faces.length?
+      d.faces.map(f=>`<div class="face-bubble ${f.label}">${f.label==='safe'?'✓':f.label==='threat'?'⚠':'?'} ${f.name}</div>`).join('')
+      :'<span style="color:var(--text-dim)">No faces detected</span>';
+  }
+  if(d.alert)showAlert(d.alert);
+  document.getElementById('sbmode').textContent='Mode: '+curMode;
+  document.getElementById('sbmqtt').textContent='MQTT: '+(d.mqtt_connected?'OK':'ERR');
+}
+async function pollFrame(){
+  const d=await api('frame');if(!d||!d.frame)return;
+  document.getElementById('camimg').src='data:image/jpeg;base64,'+d.frame;
+  document.getElementById('cfps').textContent=(d.fps||'—')+' fps';
+  document.getElementById('sbfps').textContent='Camera: '+(d.fps||'—')+' FPS';
+}
+setTimeout(()=>{poll();setInterval(poll,1500);pollFrame();setInterval(pollFrame,250);},1600);
+
+/* ════ ACTIONS ════ */
+function setMode(m){api('command',{type:'set_mode',mode:m});setMode_UI(m);log('SYS','info','Mode → '+m);}
+function setMode_UI(m){
+  curMode=m;
+  document.getElementById('tbmode').textContent=m;
+  document.getElementById('smod').textContent=m;
+  document.getElementById('sbmode').textContent='Mode: '+m;
+  ['buddy','sentinel','roast','agent'].forEach(n=>document.getElementById('mb-'+n).classList.toggle('on',n.toUpperCase()===m));
+}
+function mot(d){api('command',{type:'motor',direction:d});}
+function led(p){api('command',{type:'set_led',pattern:p});}
+function snd(t){api('command',{type:'sound',track:t});}
+function speak(){const t=document.getElementById('spkin').value.trim();if(!t)return;api('speak',{text:t});log('SYS','info','Speak: "'+t.substring(0,40)+'"');document.getElementById('spkin').value='';}
+function roast(){const n=document.getElementById('rostin').value.trim();api('roast',{name:n||'unknown'});log('SYS','warn','Roast → '+(n||'unknown'));}
+function regFace(lbl){const n=document.getElementById('facen').value.trim();if(!n)return;api('command',{type:'register_face',name:n,label:lbl});log('SYS','info','Face registered: '+n+' ['+lbl+']');}
+function showAlert(txt){document.getElementById('alertbar').style.display='';document.getElementById('alerttxt').textContent=txt;log('SYS','threat',txt);}
+function dismissAlert(){document.getElementById('alertbar').style.display='none';api('command',{type:'dismiss_alert'});}
+function vc(t){api('voice_command',{text:t});log('SYS','info','VC: '+t);}
+function sendvc(){const t=document.getElementById('vcin').value.trim();if(!t)return;vc(t);document.getElementById('vcin').value='';}
+function saveVoiceSettings(){api('settings',{tts_voice:document.getElementById('voiceSel').value,use_offline_stt:document.getElementById('cVosk').checked,wake_word:document.getElementById('wwrd').value});log('SYS','info','Voice settings saved');}
+function doNetScan(){api('command',{type:'refresh_network'});document.getElementById('lscan').textContent=new Date().toLocaleTimeString();log('NET','info','Network scan started');}
+
+/* AGENT */
+async function doQA(){
+  const q=document.getElementById('qain').value.trim();if(!q)return;
+  const b=document.getElementById('qar');b.textContent='';b.classList.add('typing');
+  const r=await api('command',{type:'ask_agent',question:q});
+  b.classList.remove('typing');
+  b.textContent=r?.answer||'No response. Upload documents to data/documents/ first.';
+}
+async function doReview(){
+  const c=document.getElementById('rvin').value.trim();if(!c)return;
+  const b=document.getElementById('rvr');b.textContent='';b.classList.add('typing');
+  const r=await api('command',{type:'review_code',code:c,language:document.getElementById('rvlang').value});
+  b.classList.remove('typing');b.textContent=r?.review||'No response.';
+}
+async function doUpload(files){
+  const st=document.getElementById('upst');
+  for(const f of files){
+    st.textContent='Uploading '+f.name+'...';
+    const fd=new FormData();fd.append('file',f);
+    try{await fetch('/api/upload_document',{method:'POST',body:fd});st.textContent='✓ Uploaded: '+f.name;log('SYS','info','Doc uploaded: '+f.name);}
+    catch{st.textContent='✗ Failed: '+f.name;}
+  }
+}
+
+/* ════ LOG ════ */
+let loglines=[];
+function log(type,level,msg){
+  const n=new Date();
+  const ts=[n.getHours(),n.getMinutes(),n.getSeconds()].map(v=>('0'+v).slice(-2)).join(':');
+  loglines.push({ts,type,level,msg});if(loglines.length>300)loglines.shift();
+  renderLog(document.getElementById('logf').value);
+}
+function renderLog(f='all'){
+  const box=document.getElementById('logbox');
+  const lines=f==='all'?loglines:loglines.filter(l=>l.type===f);
+  box.innerHTML=lines.map(l=>`<div class="logline"><span class="lt">${l.ts}</span><span class="lk ${l.level}">${l.type}</span><span class="lm">${l.msg}</span></div>`).join('');
+  box.scrollTop=box.scrollHeight;
+}
+function filtLog(f){renderLog(f==='all'?'all':f);}
+function exportLog(){
+  const a=document.createElement('a');
+  a.href='data:text/plain,'+encodeURIComponent(loglines.map(l=>`[${l.ts}] [${l.type}] ${l.msg}`).join('\n'));
+  a.download='deskbot_log_'+Date.now()+'.txt';a.click();
+}
+
+// initial log
+log('SYS','info','DESKBOT Control Panel loaded. Connecting...');
+</script>
+</body>
+</html>

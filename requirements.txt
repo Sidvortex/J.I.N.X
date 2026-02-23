@@ -1,23 +1,57 @@
-numpy
-opencv-python
-face-recognition
-dlib
-ultralytics
-tensorflow
-keras
-librosa
-scikit-learn
-paho-mqtt
-pyttsx3
-google-genai
-streamlit
-pandas
-pillow
-pygame
-sounddevice
-joblib
-scapy
-vosk
-yt-dlp
-flask
-requests
+# DESKBOT — Python Requirements
+# Install: pip install -r requirements.txt
+
+# Core
+numpy>=1.24
+opencv-python>=4.8
+Pillow>=10.0
+
+# ML — Vision
+mediapipe>=0.10
+face-recognition>=1.3   # requires cmake + dlib
+dlib>=19.24
+ultralytics>=8.0        # YOLOv5/v8
+
+# ML — Audio
+tensorflow>=2.13
+librosa>=0.10
+sounddevice>=0.4
+soundfile>=0.12
+PyAudio>=0.2            # Might need: sudo apt install portaudio19-dev
+
+# ML — Network
+scikit-learn>=1.3
+joblib>=1.3
+scapy>=2.5              # Needs sudo for raw packet access
+
+# Speech
+SpeechRecognition>=3.10
+vosk>=0.3               # Offline STT — download model separately
+edge-tts>=6.1           # Microsoft Neural TTS (free, human voice)
+pyaudio>=0.2
+
+# LLM
+google-generativeai>=0.7  # Gemini 2.0 Flash
+# Optional: elevenlabs>=1.0  (for ultra-realistic voice — paid)
+
+# MQTT
+paho-mqtt>=2.0
+
+# Web
+flask>=3.0
+flask-cors>=4.0
+
+# Dashboard
+streamlit>=1.30
+plotly>=5.18
+pandas>=2.0
+
+# Document processing
+PyPDF2>=3.0             # or: pypdf>=3.0
+python-docx>=1.0
+
+# Utilities
+requests>=2.31
+yt-dlp>=2024.1          # Music streaming
+pygame>=2.5             # Audio playback fallback
+python-dotenv>=1.0
