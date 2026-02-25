@@ -1,263 +1,386 @@
-// ============================================================
-//  EYES.H — TFT ANIMATED EYE STATES
-//  11 emotional states rendered on 2.4" ILI9341 TFT display
-// ============================================================
-#pragma once
-#include <TFT_eSPI.h>
+#ifndef EYES_H
+#define EYES_H
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  eyes.h — ILI9341 TFT Animated Eye Display (240×320)
+//
+//  12 eye states matching the Android EyesView exactly:
+//    NEUTRAL, HAPPY, ANGRY, SLEEPY, SCANNING, THREAT,
+//    ROAST, MUSIC, TALKING, THINKING, BOOT, LOVE
+//
+//  Features:
+//    • Pupil tracking via normalized (x,y) from OPTIC
+//    • Auto-blink every ~4 seconds
+//    • All drawing uses Adafruit GFX — no images needed
+//    • eyeTick() is non-blocking (millis-based)
+// ═══════════════════════════════════════════════════════════════════════════
+
+#include <Adafruit_GFX.h>
+#include <Adafruit_ILI9341.h>
 #include "config.h"
 
-TFT_eSPI tft = TFT_eSPI();
+// ── TFT Object ────────────────────────────────────────────────────────────
+Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_RST);
 
-// Eye state enum
-enum EyeState {
-  EYE_NEUTRAL, EYE_HAPPY, EYE_ANGRY, EYE_SLEEPY, EYE_LOVE,
-  EYE_SCANNING, EYE_THREAT, EYE_ROAST, EYE_MUSIC,
-  EYE_THINKING, EYE_TALKING, EYE_BOOT
+// ── Color palette ─────────────────────────────────────────────────────────
+#define COL_BG       0x0000   // Black
+#define COL_CYAN     0x07FF   // #00F5FF approx
+#define COL_GREEN    0x07E0   // #00FF00
+#define COL_RED      0xF800
+#define COL_ORANGE   0xFD20   // #FF8800 approx
+#define COL_PURPLE   0x801F   // #880088 approx
+#define COL_WHITE    0xFFFF
+#define COL_YELLOW   0xFFE0
+#define COL_DKGRAY   0x2104
+#define COL_LTGRAY   0x8410
+
+// ── Eye state enum ────────────────────────────────────────────────────────
+enum EyeStateESP {
+  EYE_NEUTRAL  = 0,
+  EYE_HAPPY    = 1,
+  EYE_ANGRY    = 2,
+  EYE_SLEEPY   = 3,
+  EYE_SCANNING = 4,
+  EYE_THREAT   = 5,
+  EYE_ROAST    = 6,
+  EYE_MUSIC    = 7,
+  EYE_TALKING  = 8,
+  EYE_THINKING = 9,
+  EYE_BOOT     = 10,
+  EYE_LOVE     = 11
 };
 
-// Colors
-#define TFT_NEON_CYAN   0x07FF
-#define TFT_NEON_GREEN  0x07E0
-#define TFT_NEON_RED    0xF800
-#define TFT_NEON_PURPLE 0x780F
-#define TFT_NEON_YELLOW 0xFFE0
-#define TFT_NEON_ORANGE 0xFC60
-#define TFT_BG          TFT_BLACK
+// ── Display constants (240×320) ────────────────────────────────────────────
+#define TFT_W    240
+#define TFT_H    320
 
-EyeState currentEye = EYE_NEUTRAL;
-float    pupilX = 0.5f, pupilY = 0.5f;   // Normalized pupil position
-int      scanAngle = 0;   // For scanning animation
-bool     blinkState = false;
-unsigned long lastBlink = 0;
-unsigned long lastAnim  = 0;
+// Eye positions (two eyes side by side)
+#define EYE_L_CX   75    // left eye center X
+#define EYE_R_CX  165    // right eye center X
+#define EYE_CY    160    // eye center Y
+#define EYE_RX     48    // eye horizontal radius
+#define EYE_RY     55    // eye vertical radius
+#define PUPIL_R    18    // pupil radius
+#define GLINT_R     6    // white glint radius
 
+// ── Internal state ────────────────────────────────────────────────────────
+static EyeStateESP _eyeState    = EYE_NEUTRAL;
+static EyeStateESP _lastDrawn   = (EyeStateESP)255;
+static float       _pupilNx     = 0.5f;
+static float       _pupilNy     = 0.5f;
+static bool        _blinkState  = false;
+static uint32_t    _blinkLastMs = 0;
+static uint32_t    _animLastMs  = 0;
+static uint8_t     _animStep    = 0;
+static uint16_t    _scanAngle   = 0;
+static bool        _needRedraw  = true;
+static uint8_t     _bootPct     = 0;
+
+// ── Init ──────────────────────────────────────────────────────────────────
 void initEyes() {
-  tft.init();
-  tft.setRotation(1);   // Landscape
-  tft.fillScreen(TFT_BG);
-  tft.setTextColor(TFT_NEON_CYAN, TFT_BG);
-  tft.setTextSize(2);
-  tft.setCursor(50, 100);
-  tft.print("INITIALIZING...");
-  delay(1000);
+  tft.begin();
+  tft.setRotation(2);    // portrait, USB at bottom
+  tft.fillScreen(COL_BG);
+  _eyeState  = EYE_BOOT;
+  _needRedraw = true;
+  DBGLN("[EYES] TFT initialized");
 }
 
-void _drawEyePupil(int cx, int cy, int r, uint16_t color, float nx, float ny) {
-  // Pupil offset based on gaze direction
-  int px = cx + (int)((nx - 0.5f) * r * 0.6f);
-  int py = cy + (int)((ny - 0.5f) * r * 0.6f);
-  // Iris
-  tft.fillCircle(cx, cy, r, color);
-  tft.drawCircle(cx, cy, r, TFT_WHITE);
-  // Pupil
-  tft.fillCircle(px, py, r / 3, TFT_BLACK);
-  // Highlight
-  tft.fillCircle(px - r/5, py - r/5, r/7, TFT_WHITE);
+// ── Set state ─────────────────────────────────────────────────────────────
+void eyeSetState(EyeStateESP state) {
+  if (_eyeState == state) return;
+  _eyeState   = state;
+  _animStep   = 0;
+  _needRedraw = true;
+  tft.fillScreen(COL_BG);
 }
 
-void drawEyeNeutral() {
-  tft.fillScreen(TFT_BG);
-  // Left eye
-  _drawEyePupil(80, 120, 45, TFT_NEON_CYAN, pupilX, pupilY);
-  // Right eye
-  _drawEyePupil(240, 120, 45, TFT_NEON_CYAN, pupilX, pupilY);
+void eyeSetStateByName(String name) {
+  name.toLowerCase();
+  if      (name == "neutral")  eyeSetState(EYE_NEUTRAL);
+  else if (name == "happy")    eyeSetState(EYE_HAPPY);
+  else if (name == "angry")    eyeSetState(EYE_ANGRY);
+  else if (name == "sleepy")   eyeSetState(EYE_SLEEPY);
+  else if (name == "scanning") eyeSetState(EYE_SCANNING);
+  else if (name == "threat")   eyeSetState(EYE_THREAT);
+  else if (name == "roast")    eyeSetState(EYE_ROAST);
+  else if (name == "music")    eyeSetState(EYE_MUSIC);
+  else if (name == "talking")  eyeSetState(EYE_TALKING);
+  else if (name == "thinking") eyeSetState(EYE_THINKING);
+  else if (name == "boot")     eyeSetState(EYE_BOOT);
+  else if (name == "love")     eyeSetState(EYE_LOVE);
+  else                         eyeSetState(EYE_NEUTRAL);
 }
 
-void drawEyeHappy() {
-  tft.fillScreen(TFT_BG);
-  // Upward arched eyes (^-^)
-  for (int i = -45; i <= 45; i++) {
-    float rad = i * 0.0174f;
-    int lx = 80 + (int)(45 * sin(rad));
-    int ly = 120 - (int)(45 * abs(cos(rad))) + 15;
-    tft.fillCircle(lx, ly, 4, TFT_NEON_GREEN);
-
-    int rx = 240 + (int)(45 * sin(rad));
-    int ry = 120 - (int)(45 * abs(cos(rad))) + 15;
-    tft.fillCircle(rx, ry, 4, TFT_NEON_GREEN);
+// ── Pupil tracking from face center ───────────────────────────────────────
+void eyeTrackPupil(float nx, float ny) {
+  _pupilNx = constrain(nx, 0.0f, 1.0f);
+  _pupilNy = constrain(ny, 0.0f, 1.0f);
+  if (_eyeState == EYE_NEUTRAL || _eyeState == EYE_TALKING) {
+    _needRedraw = true;
   }
 }
 
-void drawEyeAngry() {
-  tft.fillScreen(TFT_BG);
-  // Red eyes with angry eyebrows
-  _drawEyePupil(80, 120, 40, TFT_NEON_RED, 0.5f, 0.6f);
-  _drawEyePupil(240, 120, 40, TFT_NEON_RED, 0.5f, 0.6f);
-  // Angry brows (diagonal lines)
-  tft.drawLine(40, 60, 120, 80, TFT_NEON_RED);
-  tft.drawLine(41, 60, 121, 80, TFT_NEON_RED);
-  tft.drawLine(200, 80, 280, 60, TFT_NEON_RED);
-  tft.drawLine(200, 81, 280, 61, TFT_NEON_RED);
+// ── Helper: draw one eye (oval + pupil + glint) ────────────────────────────
+void _drawEye(int cx, int cy, int rx, int ry,
+              uint16_t irisCol, float nx, float ny,
+              bool blink = false) {
+  if (blink) {
+    // Blink: draw flat horizontal line
+    tft.drawLine(cx - rx, cy, cx + rx, cy, irisCol);
+    return;
+  }
+  tft.fillEllipse(cx, cy, rx, ry, irisCol);
+
+  // Pupil offset based on face position
+  int px = cx + (int)((nx - 0.5f) * rx * 0.5f);
+  int py = cy + (int)((ny - 0.5f) * ry * 0.5f);
+  tft.fillCircle(px, py, PUPIL_R, COL_BG);
+
+  // White glint (top-left of iris)
+  tft.fillCircle(cx - rx/3, cy - ry/3, GLINT_R, COL_WHITE);
 }
 
-void drawEyeSleepy() {
-  tft.fillScreen(TFT_BG);
-  // Half-closed eyes
-  _drawEyePupil(80, 130, 40, TFT_NEON_CYAN, 0.5f, 0.7f);
-  _drawEyePupil(240, 130, 40, TFT_NEON_CYAN, 0.5f, 0.7f);
-  // Heavy eyelids (cover top half)
-  tft.fillRect(35, 80, 90, 55, TFT_BG);
-  tft.fillRect(195, 80, 90, 55, TFT_BG);
+// ── Border glow ────────────────────────────────────────────────────────────
+void _drawBorder(uint16_t col) {
+  tft.drawRect(0, 0, TFT_W, TFT_H, col);
+  tft.drawRect(1, 1, TFT_W-2, TFT_H-2, col);
+}
+
+// ── Draw NEUTRAL / TALKING ─────────────────────────────────────────────────
+void _drawNeutral(bool talking) {
+  _drawBorder(COL_CYAN);
+  _drawEye(EYE_L_CX, EYE_CY, EYE_RX, EYE_RY, COL_CYAN, _pupilNx, _pupilNy, _blinkState);
+  _drawEye(EYE_R_CX, EYE_CY, EYE_RX, EYE_RY, COL_CYAN, _pupilNx, _pupilNy, _blinkState);
+
+  if (talking) {
+    // Animated mouth bar
+    int mouthW = 60 + (_animStep % 20) * 2;
+    int mouthH = 8 + (_animStep % 10);
+    tft.fillRoundRect(TFT_W/2 - mouthW/2, EYE_CY + 80, mouthW, mouthH, 4, COL_CYAN);
+  }
+}
+
+// ── Draw HAPPY ─────────────────────────────────────────────────────────────
+void _drawHappy() {
+  _drawBorder(COL_GREEN);
+  // ^ ^ arcs
+  for (int i = -EYE_RX; i <= EYE_RX; i++) {
+    float y = -(float)(EYE_RY) * (1.0f - ((float)(i*i)) / (EYE_RX * EYE_RX));
+    tft.drawPixel(EYE_L_CX + i, EYE_CY + (int)y, COL_GREEN);
+    tft.drawPixel(EYE_R_CX + i, EYE_CY + (int)y, COL_GREEN);
+  }
+  tft.setTextColor(COL_GREEN); tft.setTextSize(2);
+  tft.setCursor(TFT_W/2 - 20, EYE_CY + 80);
+  tft.print("^_^");
+}
+
+// ── Draw ANGRY ─────────────────────────────────────────────────────────────
+void _drawAngry() {
+  _drawBorder(COL_RED);
+  _drawEye(EYE_L_CX, EYE_CY, EYE_RX, EYE_RY, COL_RED, _pupilNx, _pupilNy);
+  _drawEye(EYE_R_CX, EYE_CY, EYE_RX, EYE_RY, COL_RED, _pupilNx, _pupilNy);
+  // Diagonal angry brows
+  tft.drawLine(EYE_L_CX - EYE_RX, EYE_CY - EYE_RY - 10,
+               EYE_L_CX + EYE_RX, EYE_CY - EYE_RY + 15, COL_RED);
+  tft.drawLine(EYE_R_CX + EYE_RX, EYE_CY - EYE_RY - 10,
+               EYE_R_CX - EYE_RX, EYE_CY - EYE_RY + 15, COL_RED);
+}
+
+// ── Draw SLEEPY ────────────────────────────────────────────────────────────
+void _drawSleepy() {
+  _drawBorder(0x421F);  // dim purple
+  // Half-closed: top half of iris covered by lid
+  tft.fillEllipse(EYE_L_CX, EYE_CY, EYE_RX, EYE_RY, 0x421F);
+  tft.fillEllipse(EYE_R_CX, EYE_CY, EYE_RX, EYE_RY, 0x421F);
+  // Black lid covers top half
+  tft.fillRect(EYE_L_CX - EYE_RX, EYE_CY - EYE_RY, EYE_RX*2, EYE_RY, COL_BG);
+  tft.fillRect(EYE_R_CX - EYE_RX, EYE_CY - EYE_RY, EYE_RX*2, EYE_RY, COL_BG);
   // Zzz text
-  tft.setTextColor(TFT_NEON_CYAN, TFT_BG);
-  tft.setTextSize(1);
-  tft.setCursor(150, 50);
-  tft.print("z z z");
+  tft.setTextColor(0x421F); tft.setTextSize(2);
+  tft.setCursor(EYE_R_CX + EYE_RX + 5, EYE_CY - 20);
+  tft.print("zzz");
 }
 
-void drawEyeScanning() {
-  tft.fillScreen(TFT_BG);
-  // Scanning animation — rotating arc
-  for (int i = 0; i < 360; i += 10) {
-    float rad = (i + scanAngle) * 0.0174f;
-    int x = 160 + (int)(100 * cos(rad));
-    int y = 120 + (int)(100 * sin(rad));
-    uint16_t brightness = (i < 180) ? TFT_NEON_CYAN : TFT_NEON_GREEN;
-    tft.drawPixel(x, y, brightness);
+// ── Draw SCANNING ──────────────────────────────────────────────────────────
+void _drawScanning() {
+  // Rotating arc + crosshair
+  _drawBorder(COL_CYAN);
+  int cx = TFT_W/2; int cy = EYE_CY;
+  int r = 70;
+  // Draw arc segments (approximate with lines)
+  float a = (_scanAngle / 57.3f);  // radians
+  for (int i = 0; i < 200; i++) {
+    float ang = a + i * 0.015f;
+    int x = cx + (int)(r * cos(ang));
+    int y = cy + (int)(r * sin(ang));
+    tft.drawPixel(x, y, COL_CYAN);
   }
-  // Center reticle
-  tft.drawCircle(160, 120, 10, TFT_NEON_CYAN);
-  tft.drawLine(150, 120, 170, 120, TFT_NEON_GREEN);
-  tft.drawLine(160, 110, 160, 130, TFT_NEON_GREEN);
-  // Text
-  tft.setTextColor(TFT_NEON_GREEN, TFT_BG);
-  tft.setTextSize(1);
-  tft.setCursor(100, 200);
-  tft.print("SCANNING...");
-  scanAngle = (scanAngle + 5) % 360;
+  // Crosshair
+  tft.drawLine(cx - 15, cy, cx + 15, cy, COL_CYAN);
+  tft.drawLine(cx, cy - 15, cx, cy + 15, COL_CYAN);
+  tft.drawCircle(cx, cy, 5, COL_CYAN);
+  // SCAN label
+  tft.setTextColor(COL_CYAN); tft.setTextSize(1);
+  tft.setCursor(cx - 14, cy + r + 10);
+  tft.print("SCANNING");
 }
 
-void drawEyeThreat() {
-  tft.fillScreen(TFT_BG);
-  // Red alert eyes
-  _drawEyePupil(80, 120, 45, TFT_NEON_RED, pupilX, pupilY);
-  _drawEyePupil(240, 120, 45, TFT_NEON_RED, pupilX, pupilY);
-  // Alert border
-  tft.drawRect(0, 0, 320, 240, TFT_NEON_RED);
-  tft.drawRect(2, 2, 316, 236, TFT_NEON_RED);
-  tft.setTextColor(TFT_NEON_RED, TFT_BG);
-  tft.setTextSize(1);
-  tft.setCursor(105, 205);
-  tft.print("[ THREAT ]");
+// ── Draw THREAT ────────────────────────────────────────────────────────────
+void _drawThreat() {
+  // Red border, red pupils
+  tft.drawRect(0, 0, TFT_W, TFT_H, COL_RED);
+  tft.drawRect(2, 2, TFT_W-4, TFT_H-4, COL_RED);
+  tft.drawRect(4, 4, TFT_W-8, TFT_H-8, COL_RED);
+  _drawEye(EYE_L_CX, EYE_CY, EYE_RX, EYE_RY, COL_RED, _pupilNx, _pupilNy);
+  _drawEye(EYE_R_CX, EYE_CY, EYE_RX, EYE_RY, COL_RED, _pupilNx, _pupilNy);
+  tft.setTextColor(COL_RED); tft.setTextSize(2);
+  tft.setCursor(TFT_W/2 - 36, EYE_CY + 85);
+  tft.print("THREAT");
 }
 
-void drawEyeRoast() {
-  tft.fillScreen(TFT_BG);
-  // Smug eyes (one raised "eyebrow")
-  _drawEyePupil(80, 120, 40, TFT_NEON_ORANGE, 0.6f, 0.5f);
-  _drawEyePupil(240, 120, 45, TFT_NEON_ORANGE, 0.6f, 0.5f);
-  // Smirk line
-  tft.drawLine(120, 190, 200, 185, TFT_NEON_ORANGE);
-  tft.drawLine(200, 185, 210, 175, TFT_NEON_ORANGE);
-  tft.setTextColor(TFT_NEON_ORANGE, TFT_BG);
-  tft.setTextSize(1);
-  tft.setCursor(100, 205);
-  tft.print("ROAST MODE");
+// ── Draw ROAST ─────────────────────────────────────────────────────────────
+void _drawRoast() {
+  _drawBorder(COL_ORANGE);
+  // Narrow smug eyes
+  tft.fillRect(EYE_L_CX - EYE_RX, EYE_CY - 5, EYE_RX*2, 10, COL_ORANGE);
+  tft.fillRect(EYE_R_CX - EYE_RX, EYE_CY - 5, EYE_RX*2, 10, COL_ORANGE);
+  // Smirk
+  int mx = TFT_W/2; int my = EYE_CY + 75;
+  tft.drawLine(mx - 30, my, mx + 10, my + 15, COL_ORANGE);
+  tft.drawLine(mx + 10, my + 15, mx + 35, my - 5, COL_ORANGE);
 }
 
-void drawEyeMusic() {
-  tft.fillScreen(TFT_BG);
-  // Musical notes bouncing
-  _drawEyePupil(80, 120, 40, TFT_NEON_PURPLE, pupilX, pupilY);
-  _drawEyePupil(240, 120, 40, TFT_NEON_PURPLE, pupilX, pupilY);
-  tft.setTextColor(TFT_NEON_PURPLE, TFT_BG);
-  tft.setTextSize(2);
-  int noteX = 130 + (int)(20 * sin(millis() / 300.0f));
-  tft.setCursor(noteX, 190);
-  tft.print("^");
-  tft.setCursor(noteX + 40, 195);
-  tft.print("~");
+// ── Draw MUSIC ─────────────────────────────────────────────────────────────
+void _drawMusic() {
+  _drawBorder(COL_PURPLE);
+  _drawEye(EYE_L_CX, EYE_CY, EYE_RX, EYE_RY, COL_PURPLE, 0.5f, 0.5f);
+  _drawEye(EYE_R_CX, EYE_CY, EYE_RX, EYE_RY, COL_PURPLE, 0.5f, 0.5f);
+  // Animated notes
+  int noteY = EYE_CY - 80 - (_animStep % 20);
+  tft.setTextColor(COL_PURPLE); tft.setTextSize(3);
+  tft.setCursor(30,  noteY);
+  tft.print("J");
+  tft.setCursor(170, noteY + 15 - (_animStep % 15));
+  tft.print("J");
 }
 
-void drawEyeThinking() {
-  tft.fillScreen(TFT_BG);
-  // One eye looking up-right
-  _drawEyePupil(80, 120, 40, TFT_NEON_CYAN, 0.7f, 0.3f);
-  _drawEyePupil(240, 120, 40, TFT_NEON_CYAN, 0.7f, 0.3f);
-  // Thinking dots
-  tft.setTextColor(TFT_NEON_CYAN, TFT_BG);
-  tft.setTextSize(2);
-  int dotCount = (millis() / 500) % 4;
-  String dots = "";
-  for (int i = 0; i < dotCount; i++) dots += ".";
-  tft.setCursor(130, 200);
-  tft.print(dots + "   ");
+// ── Draw THINKING ──────────────────────────────────────────────────────────
+void _drawThinking() {
+  _drawBorder(COL_CYAN);
+  // Eyes looking up-right
+  _drawEye(EYE_L_CX, EYE_CY, EYE_RX, EYE_RY, COL_CYAN, 0.7f, 0.3f);
+  _drawEye(EYE_R_CX, EYE_CY, EYE_RX, EYE_RY, COL_CYAN, 0.7f, 0.3f);
+  // Dots ...
+  int dotX = TFT_W/2 - 20;
+  for (int i = 0; i < 3; i++) {
+    uint16_t col = (i == (_animStep % 3)) ? COL_WHITE : COL_DKGRAY;
+    tft.fillCircle(dotX + i*20, EYE_CY + 85, 6, col);
+  }
 }
 
-void drawEyeTalking() {
-  tft.fillScreen(TFT_BG);
-  _drawEyePupil(80, 120, 40, TFT_NEON_CYAN, pupilX, pupilY);
-  _drawEyePupil(240, 120, 40, TFT_NEON_CYAN, pupilX, pupilY);
-  // Animated mouth
-  int mouthW = 40 + (int)(20 * sin(millis() / 150.0f));
-  int mouthH = 5 + (int)(8 * abs(sin(millis() / 150.0f)));
-  tft.fillRoundRect(160 - mouthW/2, 190, mouthW, mouthH, 3, TFT_NEON_CYAN);
+// ── Draw BOOT ──────────────────────────────────────────────────────────────
+void _drawBoot() {
+  _drawBorder(COL_CYAN);
+  tft.setTextColor(COL_WHITE); tft.setTextSize(2);
+  tft.setCursor(TFT_W/2 - 40, EYE_CY - 60);
+  tft.print("JINX v2.1");
+  tft.setTextSize(1); tft.setTextColor(COL_CYAN);
+  tft.setCursor(TFT_W/2 - 52, EYE_CY - 30);
+  tft.print("INITIALIZING...");
+
+  // Progress bar
+  int barX = 20; int barY = EYE_CY + 20;
+  int barW = TFT_W - 40; int barH = 14;
+  tft.drawRect(barX, barY, barW, barH, COL_CYAN);
+  int fill = (int)((barW - 2) * (_bootPct / 100.0f));
+  tft.fillRect(barX + 1, barY + 1, fill, barH - 2, COL_CYAN);
+
+  char pct[8]; snprintf(pct, sizeof(pct), "%d%%", _bootPct);
+  tft.setTextColor(COL_WHITE); tft.setTextSize(1);
+  tft.setCursor(TFT_W/2 - 10, barY + barH + 5);
+  tft.print(pct);
+
+  if (_bootPct < 100) _bootPct += 3;
+  else eyeSetState(EYE_NEUTRAL);
 }
 
-void drawEyeBoot() {
-  tft.fillScreen(TFT_BG);
-  // Boot sequence: loading bar
-  tft.setTextColor(TFT_NEON_CYAN, TFT_BG);
-  tft.setTextSize(1);
-  tft.setCursor(70, 80);
-  tft.print("DESKBOT INITIALIZING");
-  int progress = (millis() / 30) % 101;
-  tft.fillRect(60, 110, (int)(2 * progress), 10, TFT_NEON_CYAN);
-  tft.drawRect(60, 110, 200, 10, TFT_NEON_CYAN);
-  tft.setCursor(145, 130);
-  tft.print(String(progress) + "%");
+// ── Draw LOVE ──────────────────────────────────────────────────────────────
+void _drawLove() {
+  _drawBorder(COL_RED);
+  // Heart shapes for eyes (approximate with circles)
+  tft.fillCircle(EYE_L_CX - 15, EYE_CY - 10, 22, COL_RED);
+  tft.fillCircle(EYE_L_CX + 15, EYE_CY - 10, 22, COL_RED);
+  tft.fillTriangle(EYE_L_CX - 35, EYE_CY,
+                   EYE_L_CX + 35, EYE_CY,
+                   EYE_L_CX,      EYE_CY + 30, COL_RED);
+
+  tft.fillCircle(EYE_R_CX - 15, EYE_CY - 10, 22, COL_RED);
+  tft.fillCircle(EYE_R_CX + 15, EYE_CY - 10, 22, COL_RED);
+  tft.fillTriangle(EYE_R_CX - 35, EYE_CY,
+                   EYE_R_CX + 35, EYE_CY,
+                   EYE_R_CX,      EYE_CY + 30, COL_RED);
 }
 
-void drawEyeLove() {
-  tft.fillScreen(TFT_BG);
-  // Heart-shaped eyes
-  // Simple heart approximation
-  for (int x = -20; x <= 20; x++) {
-    for (int y = -20; y <= 20; y++) {
-      if ((x*x + y*y - 400) * (x*x + y*y - 400) - 4*x*x * y*y * y < 0) {
-        tft.drawPixel(80 + x, 120 + y, TFT_NEON_RED);
-        tft.drawPixel(240 + x, 120 + y, TFT_NEON_RED);
-      }
+// ── eyeTick() — call every loop() ─────────────────────────────────────────
+void eyeTick() {
+  uint32_t now = millis();
+
+  // Auto-blink every ~4 seconds (only in neutral/talking states)
+  if (_eyeState == EYE_NEUTRAL || _eyeState == EYE_TALKING) {
+    if (!_blinkState && now - _blinkLastMs > 4000) {
+      _blinkState  = true;
+      _blinkLastMs = now;
+      _needRedraw  = true;
+    }
+    if (_blinkState && now - _blinkLastMs > 120) {
+      _blinkState  = false;
+      _blinkLastMs = now;
+      _needRedraw  = true;
     }
   }
-}
 
-// Auto-blink
-void autoUpdate() {
-  unsigned long now = millis();
-  if (now - lastBlink > 3000 + random(2000)) {
-    lastBlink = now;
-    // Quick blink
-    tft.fillRect(35, 90, 90, 70, TFT_BG);
-    tft.fillRect(195, 90, 90, 70, TFT_BG);
-    delay(80);
-    setEyeState(currentEye);
+  // Animation tick (for scanning, music, thinking, etc.)
+  if (now - _animLastMs > 60) {
+    _animLastMs = now;
+    _animStep++;
+    _scanAngle = (_scanAngle + 8) % 360;
+    // These states need continuous redraw
+    if (_eyeState == EYE_SCANNING || _eyeState == EYE_MUSIC  ||
+        _eyeState == EYE_THINKING || _eyeState == EYE_TALKING ||
+        _eyeState == EYE_BOOT) {
+      _needRedraw = true;
+    }
+  }
+
+  if (!_needRedraw) return;
+  _needRedraw = false;
+
+  // Clear screen only for static states (continuous states clear their own area)
+  if (_eyeState != EYE_SCANNING && _eyeState != EYE_BOOT) {
+    tft.fillScreen(COL_BG);
+  }
+
+  switch (_eyeState) {
+    case EYE_NEUTRAL:  _drawNeutral(false); break;
+    case EYE_HAPPY:    _drawHappy();        break;
+    case EYE_ANGRY:    _drawAngry();        break;
+    case EYE_SLEEPY:   _drawSleepy();       break;
+    case EYE_SCANNING: _drawScanning();     break;
+    case EYE_THREAT:   _drawThreat();       break;
+    case EYE_ROAST:    _drawRoast();        break;
+    case EYE_MUSIC:    _drawMusic();        break;
+    case EYE_TALKING:  _drawNeutral(true);  break;
+    case EYE_THINKING: _drawThinking();     break;
+    case EYE_BOOT:     _drawBoot();         break;
+    case EYE_LOVE:     _drawLove();         break;
   }
 }
 
-void movePupils(float nx, float ny) {
-  pupilX = nx;
-  pupilY = ny;
-  // Redraw if neutral/happy to update pupil position
-  if (currentEye == EYE_NEUTRAL || currentEye == EYE_THREAT) {
-    setEyeState(currentEye);
-  }
+// ── Set boot progress (0–100) ─────────────────────────────────────────────
+void eyeSetBootProgress(uint8_t pct) {
+  _bootPct    = pct;
+  _needRedraw = true;
 }
 
-void setEyeState(EyeState state) {
-  currentEye = state;
-  switch (state) {
-    case EYE_NEUTRAL:  drawEyeNeutral();  break;
-    case EYE_HAPPY:    drawEyeHappy();    break;
-    case EYE_ANGRY:    drawEyeAngry();    break;
-    case EYE_SLEEPY:   drawEyeSleepy();   break;
-    case EYE_LOVE:     drawEyeLove();     break;
-    case EYE_SCANNING: drawEyeScanning(); break;
-    case EYE_THREAT:   drawEyeThreat();   break;
-    case EYE_ROAST:    drawEyeRoast();    break;
-    case EYE_MUSIC:    drawEyeMusic();    break;
-    case EYE_THINKING: drawEyeThinking(); break;
-    case EYE_TALKING:  drawEyeTalking();  break;
-    case EYE_BOOT:     drawEyeBoot();     break;
-  }
-}
+#endif // EYES_H

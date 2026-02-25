@@ -1,265 +1,388 @@
-// ============================================================
-//  DESKBOT_ESP32.INO — ESP32 MAIN FIRMWARE
-//  Handles: Eyes, Motors, Servos, LEDs, Sensors, Battery, Speaker
-//  Communication: WiFi + MQTT
-// ============================================================
-// REQUIRED LIBRARIES:
-//   TFT_eSPI, Adafruit_NeoPixel, PubSubClient,
-//   ArduinoJson, ESP32Servo, DFRobotDFPlayerMini,
-//   VL53L0X (Pololu)
-// ============================================================
+// ═══════════════════════════════════════════════════════════════════════════
+//  jinx_esp32.ino — JINX Robot Main Firmware
+//
+//  Hardware: ESP32-WROOM-32
+//  Author:   Sidvortex
+//  Version:  2.1.0
+//
+//  Includes:
+//    config.h   — all pins, topics, thresholds
+//    LED.h      — WS2812B NeoPixel (12 LEDs, 11 modes)
+//    eyes.h     — ILI9341 TFT animated eyes (12 states)
+//    motors.h   — L298N dual motor driver
+//    servos.h   — SG90 pan/tilt head tracking
+//    sensors.h  — VL53L0X ToF + HC-SR04 + IR sensors
+//
+//  MQTT Topics handled:
+//    jinx/eyes        → eye state name ("neutral","threat",...)
+//    jinx/head_track  → {"x":0.5,"y":0.5}  (face center normalized)
+//    jinx/eye_track   → {"x":0.5,"y":0.5}  (pupil target)
+//    jinx/motor       → {"direction":"forward","speed":180}
+//    jinx/led         → "scan" / "alert" / "color:red" / ...
+//    jinx/sound       → {"track":3}  (DFPlayer track number)
+//    jinx/command     → {"type":"reboot"} / {"type":"center"} / ...
+//    jinx/mode        → "BUDDY" / "SENTINEL" / "ROAST" / "SLEEP"
+//
+//  Publishes:
+//    jinx/sensors  → sensor JSON every 100ms
+//    jinx/battery  → {"level":85,"voltage":7.8} every 5s
+//    jinx/status   → {"online":true,"mode":"BUDDY",...} on connect
+// ═══════════════════════════════════════════════════════════════════════════
 
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
+
+// ── Project headers (order matters) ──────────────────────────────────────
 #include "config.h"
+#include "LED.h"
 #include "eyes.h"
 #include "motors.h"
-#include "leds.h"
-#include "sensors.h"
 #include "servos.h"
+#include "sensors.h"
+#include "sound.h"
+#include "battery.h"
 
+// ── MQTT & WiFi clients ───────────────────────────────────────────────────
 WiFiClient   wifiClient;
 PubSubClient mqtt(wifiClient);
 
-unsigned long lastSensorPublish = 0;
-unsigned long lastBatteryCheck  = 0;
-const long    SENSOR_INTERVAL   = 100;   // ms
-const long    BATTERY_INTERVAL  = 5000;  // ms
+// ── Global state ──────────────────────────────────────────────────────────
+String  currentMode    = "BUDDY";
+bool    wifiConnected  = false;
+bool    mqttConnected  = false;
+uint32_t lastMqttRetry = 0;
+uint32_t lastWifiRetry = 0;
 
-// ── Setup ──────────────────────────────────────────────────────────────────
+// Battery publishing handled via battery.h — see batteryTick() and batteryBuildJson()
+void publishBattery() {
+  String json = batteryBuildJson();
+  mqtt.publish(TOPIC_BATTERY, json.c_str(), true);  // retained
 
-void setup() {
-  Serial.begin(115200);
-  Serial.println("\n[DESKBOT] Booting...");
-
-  // Init subsystems
-  initMotors();
-  initServos();
-  initLEDs();
-  initSensors();
-  initEyes();
-
-  // Play boot animation
-  setEyeState(EYE_BOOT);
-  ledEffect(LED_BOOT);
-
-  // Connect WiFi
-  connectWiFi();
-
-  // Connect MQTT
-  mqtt.setServer(MQTT_BROKER, MQTT_PORT);
-  mqtt.setCallback(mqttCallback);
-  mqtt.setBufferSize(4096);  // Larger buffer for frame data
-  connectMQTT();
-
-  // Boot sound
-  playSound(SOUND_BOOT);
-  setEyeState(EYE_NEUTRAL);
-  ledEffect(LED_NORMAL);
-
-  Serial.println("[DESKBOT] Online!");
-  mqtt.publish(TOPIC_STATUS, "{\"status\":\"online\"}");
+  // If warning level, also send an alert
+  if (batteryIsWarn()) {
+    String alertMsg = "{\"type\":\"battery_low\",\"level\":" +
+                      String(batteryGetPercent()) + "}";
+    mqtt.publish(TOPIC_ALERTS, alertMsg.c_str());
+  }
 }
 
-// ── Main Loop ─────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+//  MQTT CALLBACK
+// ═══════════════════════════════════════════════════════════════════════════
+void mqttCallback(char* topic, byte* payload, unsigned int len) {
+  // Null-terminate payload
+  char msg[MQTT_BUFFER_SIZE];
+  len = min(len, (unsigned int)(MQTT_BUFFER_SIZE - 1));
+  memcpy(msg, payload, len);
+  msg[len] = '\0';
 
-void loop() {
-  if (!mqtt.connected()) connectMQTT();
-  mqtt.loop();
+  String topicStr(topic);
+  String msgStr(msg);
 
-  unsigned long now = millis();
+  DBGF("[MQTT] ← %s : %s\n", topic, msg);
 
-  // Publish sensor data
-  if (now - lastSensorPublish > SENSOR_INTERVAL) {
-    lastSensorPublish = now;
-    publishSensors();
+  // ── jinx/eyes ────────────────────────────────────────────────────────────
+  if (topicStr == TOPIC_EYES) {
+    eyeSetStateByName(msgStr);
+    return;
   }
 
-  // Battery check
-  if (now - lastBatteryCheck > BATTERY_INTERVAL) {
-    lastBatteryCheck = now;
-    publishBattery();
+  // ── jinx/led ─────────────────────────────────────────────────────────────
+  if (topicStr == TOPIC_LED) {
+    // Check for brightness: "brightness:180"
+    if (msgStr.startsWith("brightness:")) {
+      int b = msgStr.substring(11).toInt();
+      ledSetBrightness(constrain(b, 0, 255));
+    } else {
+      ledSetByString(msgStr);
+    }
+    return;
   }
 
-  // Update LED animations
-  updateLEDs();
+  // ── jinx/head_track  {"x":0.5,"y":0.4} ───────────────────────────────────
+  if (topicStr == TOPIC_HEAD_TRACK) {
+    StaticJsonDocument<64> doc;
+    if (deserializeJson(doc, msg) == DeserializationError::Ok) {
+      float nx = doc["x"] | 0.5f;
+      float ny = doc["y"] | 0.5f;
+      servoTrackFace(nx, ny);
+    }
+    return;
+  }
 
-  // Update servo smooth movement
-  updateServos();
+  // ── jinx/eye_track  {"x":0.5,"y":0.4} ────────────────────────────────────
+  if (topicStr == TOPIC_EYE_TRACK) {
+    StaticJsonDocument<64> doc;
+    if (deserializeJson(doc, msg) == DeserializationError::Ok) {
+      float nx = doc["x"] | 0.5f;
+      float ny = doc["y"] | 0.5f;
+      eyeTrackPupil(nx, ny);
+    }
+    return;
+  }
+
+  // ── jinx/motor  {"direction":"forward","speed":180} ───────────────────────
+  if (topicStr == TOPIC_MOTOR) {
+    StaticJsonDocument<128> doc;
+    if (deserializeJson(doc, msg) == DeserializationError::Ok) {
+      String dir = doc["direction"] | "stop";
+      int    spd = doc["speed"]     | -1;
+      motorHandleCommand(dir, spd);
+    }
+    return;
+  }
+
+  // ── jinx/sound  {"track":3} or {"name":"boot"} or "stop" ────────────────
+  if (topicStr == TOPIC_SOUND) {
+    soundHandleMqtt(msgStr);
+    return;
+  }
+
+  // ── jinx/mode  "BUDDY" / "SENTINEL" / "ROAST" / "SLEEP" ─────────────────
+  if (topicStr == TOPIC_MODE) {
+    currentMode = msgStr;
+    currentMode.toUpperCase();
+    onModeChange(currentMode);
+    return;
+  }
+
+  // ── jinx/command  {"type":"reboot"} ──────────────────────────────────────
+  if (topicStr == TOPIC_COMMAND) {
+    StaticJsonDocument<256> doc;
+    if (deserializeJson(doc, msg) == DeserializationError::Ok) {
+      String type = doc["type"] | "";
+      handleCommand(type, doc);
+    }
+    return;
+  }
 }
 
-// ── WiFi ──────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+//  MODE CHANGES
+// ═══════════════════════════════════════════════════════════════════════════
+void onModeChange(String mode) {
+  DBGF("[MODE] → %s\n", mode.c_str());
 
+  if (mode == "BUDDY") {
+    eyeSetState(EYE_NEUTRAL);
+    ledSetMode(LED_NORMAL);
+  } else if (mode == "SENTINEL") {
+    eyeSetState(EYE_SCANNING);
+    ledSetMode(LED_SCAN);
+  } else if (mode == "ROAST") {
+    eyeSetState(EYE_ROAST);
+    ledSetMode(LED_PARTY);
+  } else if (mode == "AGENT") {
+    eyeSetState(EYE_THINKING);
+    ledSetMode(LED_NORMAL);
+  } else if (mode == "SLEEP") {
+    eyeSetState(EYE_SLEEPY);
+    ledSetMode(LED_OFF);
+    motorHalt();
+    servoCenter();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  COMMAND HANDLER
+// ═══════════════════════════════════════════════════════════════════════════
+void handleCommand(String type, JsonDocument& doc) {
+  if (type == "reboot_esp") {
+    DBGLN("[CMD] Rebooting...");
+    delay(200);
+    ESP.restart();
+  }
+  else if (type == "center_servos") {
+    servoCenter();
+    DBGLN("[CMD] Servos centered");
+  }
+  else if (type == "nod") {
+    servoNod();
+  }
+  else if (type == "shake") {
+    servoShake();
+  }
+  else if (type == "ack") {
+    ledFlashAck();
+  }
+  else if (type == "brightness") {
+    int b = doc["value"] | LED_DEFAULT_BRIGHT;
+    ledSetBrightness(b);
+  }
+  else if (type == "emergency_stop") {
+    motorEmergencyStop();
+    eyeSetState(EYE_THREAT);
+    ledSetMode(LED_ALERT);
+    DBGLN("[CMD] Emergency stop");
+  }
+  else if (type == "clear_stop") {
+    motorClearEmergency();
+    eyeSetState(EYE_NEUTRAL);
+    ledSetMode(LED_NORMAL);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  WiFi
+// ═══════════════════════════════════════════════════════════════════════════
 void connectWiFi() {
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
-  Serial.print("[WIFI] Connecting");
+  DBGF("[WiFi] Connecting to %s", WIFI_SSID);
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
   int attempts = 0;
   while (WiFi.status() != WL_CONNECTED && attempts < 30) {
     delay(500);
-    Serial.print(".");
+    DBG(".");
     attempts++;
   }
+
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.printf("\n[WIFI] Connected: %s\n", WiFi.localIP().toString().c_str());
+    wifiConnected = true;
+    DBGF("\n[WiFi] Connected! IP: %s\n", WiFi.localIP().toString().c_str());
   } else {
-    Serial.println("\n[WIFI] Failed! Running in offline mode.");
+    wifiConnected = false;
+    DBGLN("\n[WiFi] Failed — will retry");
   }
 }
 
-// ── MQTT ──────────────────────────────────────────────────────────────────
-
+// ═══════════════════════════════════════════════════════════════════════════
+//  MQTT
+// ═══════════════════════════════════════════════════════════════════════════
 void connectMQTT() {
-  int retries = 0;
-  while (!mqtt.connected() && retries < 5) {
-    Serial.print("[MQTT] Connecting...");
-    if (mqtt.connect("deskbot_esp32")) {
-      Serial.println(" OK");
-      // Subscribe to all command topics
-      mqtt.subscribe(TOPIC_EYES);
-      mqtt.subscribe(TOPIC_HEAD_TRACK);
-      mqtt.subscribe(TOPIC_EYE_TRACK);
-      mqtt.subscribe(TOPIC_MOTOR);
-      mqtt.subscribe(TOPIC_LED);
-      mqtt.subscribe(TOPIC_SOUND);
-      mqtt.subscribe(TOPIC_BUZZER);
-      mqtt.subscribe(TOPIC_MODE);
-      mqtt.subscribe(TOPIC_COMMAND);
-    } else {
-      Serial.printf(" Failed rc=%d, retrying...\n", mqtt.state());
-      delay(2000);
-    }
-    retries++;
+  if (WiFi.status() != WL_CONNECTED) return;
+
+  DBGF("[MQTT] Connecting to %s:%d\n", MQTT_BROKER, MQTT_PORT);
+  mqtt.setServer(MQTT_BROKER, MQTT_PORT);
+  mqtt.setCallback(mqttCallback);
+  mqtt.setBufferSize(MQTT_BUFFER_SIZE);
+
+  bool ok = (strlen(MQTT_USER) > 0)
+    ? mqtt.connect(MQTT_CLIENT_ID, MQTT_USER, MQTT_PASS,
+                   TOPIC_STATUS, 0, true, "{\"online\":false}")
+    : mqtt.connect(MQTT_CLIENT_ID, NULL, NULL,
+                   TOPIC_STATUS, 0, true, "{\"online\":false}");
+
+  if (ok) {
+    mqttConnected = true;
+    DBGLN("[MQTT] Connected!");
+
+    // Subscribe to all command topics
+    mqtt.subscribe(TOPIC_EYES);
+    mqtt.subscribe(TOPIC_HEAD_TRACK);
+    mqtt.subscribe(TOPIC_EYE_TRACK);
+    mqtt.subscribe(TOPIC_MOTOR);
+    mqtt.subscribe(TOPIC_LED);
+    mqtt.subscribe(TOPIC_SOUND);
+    mqtt.subscribe(TOPIC_MODE);
+    mqtt.subscribe(TOPIC_COMMAND);
+
+    // Announce online
+    char status[120];
+    snprintf(status, sizeof(status),
+      "{\"online\":true,\"mode\":\"%s\",\"ip\":\"%s\",\"firmware\":\"2.1.0\"}",
+      currentMode.c_str(), WiFi.localIP().toString().c_str());
+    mqtt.publish(TOPIC_STATUS, status, true);
+
+    // Boot complete LED + eyes
+    ledSetMode(LED_NORMAL);
+    eyeSetState(EYE_NEUTRAL);
+    soundPlay(SOUND_BOOT);   // plays /01/001.mp3
+
+  } else {
+    mqttConnected = false;
+    DBGF("[MQTT] Failed, rc=%d\n", mqtt.state());
   }
 }
 
-void mqttCallback(char* topic, byte* payload, unsigned int length) {
-  payload[length] = '\0';
-  String msg   = String((char*)payload);
-  String topic_str = String(topic);
+// ═══════════════════════════════════════════════════════════════════════════
+//  SETUP
+// ═══════════════════════════════════════════════════════════════════════════
+void setup() {
+  Serial.begin(115200);
+  DBGLN("\n\n[JINX] Booting v2.1.0...");
 
-  // ── Eyes ────────────────────────────────────────────────
-  if (topic_str == TOPIC_EYES) {
-    if (msg == "neutral")    setEyeState(EYE_NEUTRAL);
-    else if (msg == "happy")     setEyeState(EYE_HAPPY);
-    else if (msg == "angry")     setEyeState(EYE_ANGRY);
-    else if (msg == "sleepy")    setEyeState(EYE_SLEEPY);
-    else if (msg == "love")      setEyeState(EYE_LOVE);
-    else if (msg == "scanning")  setEyeState(EYE_SCANNING);
-    else if (msg == "threat")    setEyeState(EYE_THREAT);
-    else if (msg == "roast")     setEyeState(EYE_ROAST);
-    else if (msg == "music")     setEyeState(EYE_MUSIC);
-    else if (msg == "thinking")  setEyeState(EYE_THINKING);
-    else if (msg == "talking")   setEyeState(EYE_TALKING);
-    else if (msg == "boot")      setEyeState(EYE_BOOT);
-  }
+  // ── Boot sequence: eyes + LED first (no WiFi needed) ──────────────────
+  initEyes();
+  eyeSetState(EYE_BOOT);
+  ledInit();
+  ledBoot();
+  eyeSetBootProgress(10);
 
-  // ── Head Tracking (Pan/Tilt) ────────────────────────────
-  else if (topic_str == TOPIC_HEAD_TRACK) {
-    StaticJsonDocument<64> doc;
-    if (!deserializeJson(doc, msg)) {
-      float nx = doc["x"] | 0.5f;  // Normalized 0-1
-      float ny = doc["y"] | 0.5f;
-      // Convert to servo angles: center=90°, full range=60°
-      int pan  = 90 + (int)((0.5f - nx) * 60);   // Left/right
-      int tilt = 90 + (int)((ny - 0.5f) * 40);   // Up/down
-      pan  = constrain(pan,  60, 120);
-      tilt = constrain(tilt, 70, 110);
-      setServoPan(pan);
-      setServoTilt(tilt);
-    }
-  }
+  // ── Motors and servos ─────────────────────────────────────────────────
+  initMotors();
+  eyeSetBootProgress(25);
 
-  // ── Eye pupil tracking ────────────────────────────────────
-  else if (topic_str == TOPIC_EYE_TRACK) {
-    StaticJsonDocument<64> doc;
-    if (!deserializeJson(doc, msg)) {
-      float nx = doc["x"] | 0.5f;
-      float ny = doc["y"] | 0.5f;
-      movePupils(nx, ny);  // Implemented in eyes.h
-    }
-  }
+  initServos();
+  eyeSetBootProgress(40);
 
-  // ── Motors ───────────────────────────────────────────────
-  else if (topic_str == TOPIC_MOTOR) {
-    if (msg == "forward")  motorSurge(200);
-    else if (msg == "backward") motorRetreat(200);
-    else if (msg == "left")     motorLeft(180);
-    else if (msg == "right")    motorRight(180);
-    else if (msg == "stop")     motorHalt();
-  }
+  // ── Sensors ───────────────────────────────────────────────────────────
+  initSensors();
+  eyeSetBootProgress(55);
 
-  // ── LEDs ─────────────────────────────────────────────────
-  else if (topic_str == TOPIC_LED) {
-    if (msg == "off")        ledOff();
-    else if (msg == "normal")    ledEffect(LED_NORMAL);
-    else if (msg == "boot")      ledEffect(LED_BOOT);
-    else if (msg == "wake")      ledEffect(LED_WAKE);
-    else if (msg == "threat")    ledEffect(LED_THREAT);
-    else if (msg == "scan")      ledEffect(LED_SCAN);
-    else if (msg == "music")     ledEffect(LED_MUSIC);
-    else if (msg == "roast")     ledEffect(LED_ROAST);
-    else if (msg == "alert")     ledEffect(LED_ALERT);
-    else if (msg == "party")     ledEffect(LED_PARTY);
-    else if (msg == "battery_low") ledEffect(LED_BATTERY_LOW);
-    else if (msg.startsWith("color:")) {
-      String color = msg.substring(6);
-      setLEDColor(color);
-    }
-  }
+  // ── Sound ──────────────────────────────────────────────────────────────
+  soundInit();
+  eyeSetBootProgress(65);
 
-  // ── Sound Effects ─────────────────────────────────────────
-  else if (topic_str == TOPIC_SOUND) {
-    if (msg == "wake")       playSound(SOUND_WAKE);
-    else if (msg == "boot")  playSound(SOUND_BOOT);
-    else if (msg == "alert") playSound(SOUND_ALERT);
-    else if (msg == "roast") playSound(SOUND_ROAST);
-    else if (msg == "battery_low") playSound(SOUND_SLEEPY);
-  }
+  // ── WiFi ──────────────────────────────────────────────────────────────
+  batteryInit();
+  connectWiFi();
+  eyeSetBootProgress(80);
 
-  // ── Buzzer ────────────────────────────────────────────────
-  else if (topic_str == TOPIC_BUZZER) {
-    if (msg == "on") {
-      tone(PIN_BUZZER, 880, 300);
-      delay(100);
-      tone(PIN_BUZZER, 660, 300);
-    } else if (msg == "off") {
-      noTone(PIN_BUZZER);
-    }
+  // ── MQTT ──────────────────────────────────────────────────────────────
+  if (wifiConnected) {
+    connectMQTT();
   }
+  eyeSetBootProgress(100);
 
-  // ── Mode ──────────────────────────────────────────────────
-  else if (topic_str == TOPIC_MODE) {
-    if (msg == "sentinel")   ledEffect(LED_SCAN);
-    else if (msg == "sleep") { setEyeState(EYE_SLEEPY); ledEffect(LED_NORMAL); }
-    else if (msg == "buddy") { setEyeState(EYE_NEUTRAL); ledEffect(LED_NORMAL); }
-  }
+  DBGLN("[JINX] Boot complete");
 }
 
-// ── Sensor Publishing ─────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+//  LOOP
+// ═══════════════════════════════════════════════════════════════════════════
+void loop() {
+  uint32_t now = millis();
 
-void publishSensors() {
-  SensorData data = readSensors();
-  StaticJsonDocument<256> doc;
-  doc["us1_cm"]     = data.us1_cm;
-  doc["us2_cm"]     = data.us2_cm;
-  doc["ir_left"]    = data.ir_left;
-  doc["ir_right"]   = data.ir_right;
-  doc["tof_down_mm"]= data.tof_down_mm;
-  doc["tof_fwd_mm"] = data.tof_fwd_mm;
+  // ── WiFi watchdog ─────────────────────────────────────────────────────
+  if (WiFi.status() != WL_CONNECTED) {
+    if (now - lastWifiRetry > WIFI_RECONNECT_MS) {
+      lastWifiRetry = now;
+      wifiConnected = false;
+      mqttConnected = false;
+      DBGLN("[WiFi] Reconnecting...");
+      WiFi.reconnect();
+    }
+  }
 
-  char buf[256];
-  serializeJson(doc, buf);
-  mqtt.publish(TOPIC_SENSORS, buf);
-}
+  // ── MQTT watchdog ─────────────────────────────────────────────────────
+  if (wifiConnected && !mqtt.connected()) {
+    if (now - lastMqttRetry > MQTT_RECONNECT_MS) {
+      lastMqttRetry = now;
+      DBGLN("[MQTT] Reconnecting...");
+      connectMQTT();
+    }
+  }
 
-void publishBattery() {
-  float voltage = readBatteryVoltage();
-  float pct     = batteryPercent(voltage);
-  StaticJsonDocument<64> doc;
-  doc["voltage"] = voltage;
-  doc["percent"] = (int)pct;
-  char buf[64];
-  serializeJson(doc, buf);
-  mqtt.publish(TOPIC_BATTERY, buf);
+  // ── MQTT loop (process incoming messages) ─────────────────────────────
+  if (mqtt.connected()) {
+    mqtt.loop();
+  }
+
+  // ── Sensors (reads + safety checks + MQTT publish) ───────────────────
+  if (sensorTick() && mqtt.connected()) {
+    String sensorJson = sensorBuildJson();
+    mqtt.publish(TOPIC_SENSORS, sensorJson.c_str());
+  }
+
+  // ── Battery tick + publish ─────────────────────────────────────────────
+  if (batteryTick() && mqtt.connected()) {
+    publishBattery();
+  }
+
+  // ── Non-blocking animations ───────────────────────────────────────────
+  ledTick();      // LED effects
+  eyeTick();      // TFT eye animations
+  servoTick();    // smooth servo interpolation
 }
