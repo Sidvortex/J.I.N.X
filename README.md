@@ -528,7 +528,7 @@ python server/genesis.py --no-audio --no-network  # Faster startup
   <td align="center" width="220">
 
   <!-- Replace with Siddharth's photo URL -->
-  <img src="YOUR_SIDDHARTH_PHOTO_URL_HERE" width="100" height="100" style="border-radius:50%" alt="Siddharth Ravada"><br><br>
+  <img src="sid.png" width="100" height="100" style="border-radius:50%" alt="Siddharth Ravada"><br><br>
   <strong>Ravada Siddharth</strong><br>
   <sub>Lead Developer · AI/ML · Hardware · IoT · Backend</sub><br><br>
   <a href="https://github.com/Sidvortex"><img src="https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white" alt="GitHub"></a>
@@ -542,7 +542,7 @@ python server/genesis.py --no-audio --no-network  # Faster startup
   <td align="center" width="220">
 
   <!-- Replace with Ayush's photo URL -->
-  <img src="YOUR_AYUSH_PHOTO_URL_HERE" width="100" height="100" style="border-radius:50%" alt="Ayush Mishra"><br><br>
+  <img src="ayush.jpeg" width="100" height="100" style="border-radius:50%" alt="Ayush Mishra"><br><br>
   <strong>Ayush Mishra</strong><br>
   <sub>Developer · Backend · Integration</sub><br><br>
   <a href="https://github.com/ayush77-pro"><img src="https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white" alt="GitHub"></a>
@@ -553,7 +553,7 @@ python server/genesis.py --no-audio --no-network  # Faster startup
   <td align="center" width="220">
 
   <!-- Replace with Vinayak's photo URL -->
-  <img src="YOUR_VINAYAK_PHOTO_URL_HERE" width="100" height="100" style="border-radius:50%" alt="Vinayak Kapoor"><br><br>
+  <img src="vinayak.png" width="100" height="100" style="border-radius:50%" alt="Vinayak Kapoor"><br><br>
   <strong>Vinayak Kapoor</strong><br>
   <sub>Developer · Frontend · App_Development</sub><br><br>
   <a href="https://github.com/vinayak605"><img src="https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white" alt="GitHub"></a>
