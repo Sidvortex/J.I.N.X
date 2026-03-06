@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=13&pause=1000&color=5E81AC&center=true&vCenter=true&width=600&lines=Judgmental+Intelligence+with+Neural+eXecution;Born+from+a+dead+ThinkPad+%26+%E2%82%B98%2C000+of+recycled+dreams.;It+doesn't+just+think.+It+judges." alt="Typing SVG" />
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=13&pause=1000&color=5E81AC&center=true&vCenter=true&width=600&lines=Judgmental+Intelligence+with+Neural+eXecution;Born+from+a+dead+ThinkPad+%26+%E2%82%B94%2C550+of+recycled+dreams.;It+doesn't+just+think.+It+judges." alt="Typing SVG" />
 </p>
 
 <h1 align="center">
@@ -11,7 +11,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/version-2.1.0-5e81ac?style=for-the-badge" alt="Version">
   <img src="https://img.shields.io/badge/status-ACTIVE-88c0d0?style=for-the-badge" alt="Status">
-  <img src="https://img.shields.io/badge/budget-%E2%82%B98%2C000-ebcb8b?style=for-the-badge" alt="Budget">
+  <img src="https://img.shields.io/badge/budget-%E2%82%B94%2C550-ebcb8b?style=for-the-badge" alt="Budget">
   <img src="https://img.shields.io/badge/license-MIT-bf616a?style=for-the-badge" alt="License">
   <img src="https://img.shields.io/badge/python-3.10+-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54" alt="Python">
   <img src="https://img.shields.io/badge/ESP32-WROOM--32-red?style=for-the-badge" alt="ESP32">
@@ -28,7 +28,7 @@
 <p align="center">
   An autonomous AI desk robot with real-time computer vision, human-like voice, face recognition,<br>
   skeleton tracking, document Q&A, live code review, home automation —<br>
-  and a <strong>sarcastic personality</strong>. Built from electronic waste for ₹8,000.
+  and a <strong>sarcastic personality</strong>. Built from electronic waste for ₹4,550.
 </p>
 
 <p align="center">
@@ -55,7 +55,7 @@
 
 It combines **10 machine learning models** spanning computer vision, audio classification, natural language understanding, network security, and sensor fusion into a single desk-mounted platform with a cyberpunk aesthetic and an attitude problem.
 
-> *"Born from a dead ThinkPad T61 that couldn't even turn on anymore. Its metal chassis became J.I.N.X's body. A spare phone that couldn't make calls became its eyes, ears, and voice. Total hardware cost: ₹8,000. This project proves that AI isn't about expensive hardware — it's about intelligence."*
+> *"Born from a dead ThinkPad T61 that couldn't even turn on anymore. Its metal chassis became J.I.N.X's body. A spare phone that couldn't make calls became its eyes, ears, and voice. Total hardware cost: ₹4,550. This project proves that AI isn't about expensive hardware — it's about intelligence."*
 
 ---
 
@@ -198,7 +198,7 @@ MODE 5: SLEEP
 
 ## 🔧 Hardware
 
-### Purchased Components (~₹8,000 total)
+### Purchased Components (~₹4,550 total)
 
 | # | Component | Spec | Purpose |
 |---|-----------|------|---------|
@@ -212,7 +212,6 @@ MODE 5: SLEEP
 | 8 | DFPlayer Mini + 3W Speaker | UART, MP3 | Sound effects |
 | 9 | 18650 Battery ×4 | 3.7V 2600mAh | 2S2P = 7.4V ~5000mAh |
 | 10 | 2S BMS Board | 7.4V 10A | Battery protection |
-| 11 | Servo Pan/Tilt Platform | Vertical & Horizontal Axis Movement | Clean Build |
 
 ### Recycled / Pre-owned
 
@@ -480,93 +479,17 @@ python server/genesis.py --no-audio --no-network  # Faster startup
 
 ---
 
-## 🎬 Demo
-
-<!-- ═══════════════════════════════════════════════════════════════ -->
-<!-- PHOTO GALLERY — replace the src URLs with your actual images  -->
-<!-- ═══════════════════════════════════════════════════════════════ -->
+## 👨‍💻 Author
 
 <p align="center">
-  <img src="YOUR_PHOTO_1_URL_HERE" width="30%" alt="J.I.N.X Front View">
-  &nbsp;
-  <img src="YOUR_PHOTO_2_URL_HERE" width="30%" alt="J.I.N.X Side View">
-  &nbsp;
-  <img src="YOUR_PHOTO_3_URL_HERE" width="30%" alt="J.I.N.X in Action">
+  <a href="mailto:ravadasiddharth@gmail.com"><img src="https://img.shields.io/badge/Gmail-D14836?style=for-the-badge&logo=gmail&logoColor=white" alt="Gmail"></a>
+  <a href="https://www.linkedin.com/in/siddharth-ravada-a032b52a2/"><img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn"></a>
+  <a href="https://x.com/crisisbysid"><img src="https://img.shields.io/badge/X-000000?style=for-the-badge&logo=x&logoColor=white" alt="X"></a>
+  <a href="https://github.com/Sidvortex"><img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub"></a>
 </p>
 
 <p align="center">
-  <img src="YOUR_PHOTO_4_URL_HERE" width="46%" alt="Dashboard Screenshot">
-  &nbsp;
-  <img src="YOUR_PHOTO_5_URL_HERE" width="46%" alt="Web Control Panel">
-</p>
-
-<!-- ═══════════════════════════════════════════════════════════════ -->
-<!-- YOUTUBE VIDEO — replace with your actual YouTube video link   -->
-<!-- Format: https://www.youtube.com/watch?v=YOUR_VIDEO_ID        -->
-<!-- ═══════════════════════════════════════════════════════════════ -->
-
-<p align="center">
-  <a href="YOUR_YOUTUBE_VIDEO_URL_HERE">
-    <img src="https://img.shields.io/badge/▶%20Watch%20Demo-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Watch Demo on YouTube">
-  </a>
-</p>
-
-> 📸 *This is a unfinished projet right now, as soon as we get funds we will be desiging its body, we would not let it stay nude like a 3yr-old child roaming around the house !!*
-
-> 🎥 *we hope you like the video on our channel and support us. Stay Tuned for such crazy projects we will be delivering them with a craze on !!*
-
----
-
-## 👥 Team
-
-<p align="center">
-
-  <!-- ─────────────────── SIDDHARTH ─────────────────── -->
-  <table align="center">
-  <tr>
-
-  <td align="center" width="220">
-
-  <!-- Replace with Siddharth's photo URL -->
-  <img src="YOUR_SIDDHARTH_PHOTO_URL_HERE" width="100" height="100" style="border-radius:50%" alt="Siddharth Ravada"><br><br>
-  <strong>Ravada Siddharth</strong><br>
-  <sub>Lead Developer · AI/ML · Hardware · IoT · Backend</sub><br><br>
-  <a href="https://github.com/Sidvortex"><img src="https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white" alt="GitHub"></a>
-  <a href="https://www.linkedin.com/in/siddharth-ravada-a032b52a2/"><img src="https://img.shields.io/badge/LinkedIn-0077B5?style=flat-square&logo=linkedin&logoColor=white" alt="LinkedIn"></a>
-  <a href="https://x.com/crisisbysid"><img src="https://img.shields.io/badge/X-000000?style=flat-square&logo=x&logoColor=white" alt="X"></a>
-  <a href="mailto:ravadasiddharth@gmail.com"><img src="https://img.shields.io/badge/Gmail-D14836?style=flat-square&logo=gmail&logoColor=white" alt="Gmail"></a>
-
-  </td>
-
-  <!-- ─────────────────── AYUSH ─────────────────── -->
-  <td align="center" width="220">
-
-  <!-- Replace with Ayush's photo URL -->
-  <img src="YOUR_AYUSH_PHOTO_URL_HERE" width="100" height="100" style="border-radius:50%" alt="Ayush Mishra"><br><br>
-  <strong>Ayush Mishra</strong><br>
-  <sub>Developer · Backend · Integration</sub><br><br>
-  <a href="https://github.com/ayush77-pro"><img src="https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white" alt="GitHub"></a>
-
-  </td>
-
-  <!-- ─────────────────── VINAYAK ─────────────────── -->
-  <td align="center" width="220">
-
-  <!-- Replace with Vinayak's photo URL -->
-  <img src="YOUR_VINAYAK_PHOTO_URL_HERE" width="100" height="100" style="border-radius:50%" alt="Vinayak Kapoor"><br><br>
-  <strong>Vinayak Kapoor</strong><br>
-  <sub>Developer · Frontend · App_Development</sub><br><br>
-  <a href="https://github.com/vinayak605"><img src="https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white" alt="GitHub"></a>
-
-  </td>
-
-  </tr>
-  </table>
-
-</p>
-
-<p align="center">
-  <strong>B.Tech Data Science (2023–2027)</strong>
+  <strong>Siddharth Ravada</strong> · B.Tech Data Science (2023–2027)
 </p>
 
 ---
@@ -576,7 +499,7 @@ python server/genesis.py --no-audio --no-network  # Faster startup
 </p>
 
 <p align="center">
-  Built with dark magic acquired from the pitch black caves of West Bengal<br>
+  Built with ♥, sarcasm, and ₹0 worth of recycled components.<br>
   <strong><a href="https://github.com/Sidvortex">@sidvortex</a></strong>
 </p>
 

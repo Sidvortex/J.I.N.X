@@ -28,7 +28,7 @@
 //    jinx/battery  → {"level":85,"voltage":7.8} every 5s
 //    jinx/status   → {"online":true,"mode":"BUDDY",...} on connect
 // ═══════════════════════════════════════════════════════════════════════════
-
+#include "display.h"
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
@@ -302,6 +302,9 @@ void connectMQTT() {
 void setup() {
   Serial.begin(115200);
   DBGLN("\n\n[JINX] Booting v2.1.0...");
+
+  displayInit();
+  displayEmotion("IDLE");
 
   // ── Boot sequence: eyes + LED first (no WiFi needed) ──────────────────
   initEyes();
