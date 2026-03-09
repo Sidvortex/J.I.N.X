@@ -553,7 +553,7 @@ python server/genesis.py --no-audio --no-network  # Faster startup
   <td align="center" width="220">
 
   <!-- Replace with Vinayak's photo URL -->
-  <img src="vinayak.png" width="100" height="100" style="border-radius:50%" alt="Vinayak Kapoor"><br><br>
+  <img src="vinayak.jpeg" width="100" height="100" style="border-radius:50%" alt="Vinayak Kapoor"><br><br>
   <strong>Vinayak Kapoor</strong><br>
   <sub>Developer · Frontend · App_Development</sub><br><br>
   <a href="https://github.com/vinayak605"><img src="https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white" alt="GitHub"></a>
@@ -562,6 +562,7 @@ python server/genesis.py --no-audio --no-network  # Faster startup
 
   </tr>
   </table>
+  
 
 </p>
 
