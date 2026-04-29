@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=13&pause=1000&color=5E81AC&center=true&vCenter=true&width=600&lines=Judgmental+Intelligence+with+Neural+eXecution;Born+from+a+dead+ThinkPad+%26+%E2%82%B98%2C000+of+recycled+dreams.;It+doesn't+just+think.+It+judges." alt="Typing SVG" />
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=13&pause=1000&color=5E81AC&center=true&vCenter=true&width=600&lines=Judgmental+Intelligence+with+Neural+eXecution;Born+from+a+dead+ThinkPad+%26+%E2%82%B94%2C550+of+recycled+dreams.;It+doesn't+just+think.+It+judges." alt="Typing SVG" />
 </p>
 
 <h1 align="center">
@@ -511,7 +511,7 @@ python server/genesis.py --no-audio --no-network  # Faster startup
   </a>
 </p>
 
-> 📸 *This is a unfinished projet right now, as soon as we get funds we will be desiging its body, we would not let it stay nude like a 3yr-old child roaming around the house !!*
+> 📸 *This is a unfinished project right now, as soon as we get funds we will be desiging its body, we would not let it stay nude like a 3yr-old child roaming around the house !!*
 
 > 🎥 *we hope you like the video on our channel and support us. Stay Tuned for such crazy projects we will be delivering them with a craze on !!*
 
@@ -543,9 +543,9 @@ python server/genesis.py --no-audio --no-network  # Faster startup
 
   <!-- Replace with Ayush's photo URL -->
   <img src="ayush.jpeg" width="100" height="100" style="border-radius:50%" alt="Ayush Mishra"><br><br>
-  <strong>Ayush Mishra</strong><br>
-  <sub>Developer · Backend · Integration</sub><br><br>
-  <a href="https://github.com/ayush77-pro"><img src="https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white" alt="GitHub"></a>
+  <strong>Kanak Sharma</strong><br>
+  <sub>Developer · Backend · Integration · AI/ML</sub><br><br>
+  <a href="https://github.com/bhavya132006"><img src="https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white" alt="GitHub"></a>
 
   </td>
 
@@ -554,9 +554,9 @@ python server/genesis.py --no-audio --no-network  # Faster startup
 
   <!-- Replace with Vinayak's photo URL -->
   <img src="vinayak.jpeg" width="100" height="100" style="border-radius:50%" alt="Vinayak Kapoor"><br><br>
-  <strong>Vinayak Kapoor</strong><br>
-  <sub>Developer · Frontend · App_Development</sub><br><br>
-  <a href="https://github.com/vinayak605"><img src="https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white" alt="GitHub"></a>
+  <strong>Arpit Kumar</strong><br>
+  <sub>Developer · Frontend · App_Development · AI/ML</sub><br><br>
+  <a href="https://github.com/arpitkumar1275hacker"><img src="https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white" alt="GitHub"></a>
 
   </td>
 
