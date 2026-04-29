@@ -542,7 +542,7 @@ python server/genesis.py --no-audio --no-network  # Faster startup
   <td align="center" width="220">
 
   <!-- Replace with Ayush's photo URL -->
-  <img src="ayush.jpeg" width="100" height="100" style="border-radius:50%" alt="Ayush Mishra"><br><br>
+  <img src="ayush.jpeg" width="100" height="100" style="border-radius:50%" alt="Kanak Sharma"><br><br>
   <strong>Kanak Sharma</strong><br>
   <sub>Developer · Backend · Integration · AI/ML</sub><br><br>
   <a href="https://github.com/bhavya132006"><img src="https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white" alt="GitHub"></a>
@@ -553,7 +553,7 @@ python server/genesis.py --no-audio --no-network  # Faster startup
   <td align="center" width="220">
 
   <!-- Replace with Vinayak's photo URL -->
-  <img src="vinayak.jpeg" width="100" height="100" style="border-radius:50%" alt="Vinayak Kapoor"><br><br>
+  <img src="vinayak.jpeg" width="100" height="100" style="border-radius:50%" alt="Arpit Kumar"><br><br>
   <strong>Arpit Kumar</strong><br>
   <sub>Developer · Frontend · App_Development · AI/ML</sub><br><br>
   <a href="https://github.com/arpitkumar1275hacker"><img src="https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white" alt="GitHub"></a>
